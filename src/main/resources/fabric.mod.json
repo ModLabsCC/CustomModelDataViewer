@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "custommodeldataviewer",
+  "version": "${version}",
+  "name": "CustomModelDataViewer",
+  "description": "List all items with custom model data",
+  "authors": [ "LiamXSage" ],
+  "contact": {},
+  "license": "Apache-2.0",
+  "icon": "assets/custommodeldataviewer/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "cc.modlabs.custommodeldataviewer.client.CustommodeldataviewerClient"
+    ],
+    "main": [
+      "cc.modlabs.custommodeldataviewer.Custommodeldataviewer"
+    ],
+    "fabric-datagen": [
+      "cc.modlabs.custommodeldataviewer.client.DataGenerator"
+    ]
+  },
+  "mixins": [
+    "custommodeldataviewer.mixins.json",
+    {
+      "config": "custommodeldataviewer.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-language-kotlin": ">=${kotlin_loader_version}",
+    "fabric": "*",
+    "minecraft": "${minecraft_version}",
+    "fabric-lifecycle-events-v1": "*",
+    "fabric-key-binding-api-v1": "*"
+  }
+}
