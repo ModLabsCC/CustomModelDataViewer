@@ -58,7 +58,7 @@ repositories {
     // Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
     // See https://docs.gradle.org/current/userguide/declaring_repositories.html
     // for more information about repositories.
-    maven("https://server.bbkr.space/artifactory/libs-release")
+    maven("https://nexus.modlabs.cc/repository/maven-mirrors/")
 }
 
 dependencies {
@@ -69,6 +69,10 @@ dependencies {
     modImplementation("net.fabricmc:fabric-language-kotlin:${project.property("kotlin_loader_version")}")
 
     modImplementation("net.fabricmc.fabric-api:fabric-api:${project.property("fabric_version")}")
+
+
+    modLocalRuntime("com.terraformersmc", "modmenu", project.extra["modmenu_version"] as String)
+    modLocalRuntime("maven.modrinth", "cloth-config", project.extra["cloth_config_version"] as String)
 }
 
 tasks.processResources {

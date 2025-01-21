@@ -34,7 +34,7 @@ class CustommodeldataviewerClient : ClientModInitializer {
     override fun onInitializeClient() {
         INSTANCE = this
 
-        Registry.register(Registries.ITEM_GROUP, CUSTOM_ITEM_GROUP_KEY, CUSTOM_ITEM_GROUP);
+        Registry.register(Registries.ITEM_GROUP, CUSTOM_ITEM_GROUP_KEY, CUSTOM_ITEM_GROUP)
 
         ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(ResourceListener())
         logger.info("CMDV initialized")
