@@ -1,0 +1,19 @@
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "minecraft:custom_model_data",
+    "cases": [
+      {
+        "when": "cmdv",
+        "model": {
+          "type": "minecraft:model",
+          "model": "custommodeldataviewer:item/cmdv"
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "minecraft:item/debug_stick"
+    }
+  }
+}
