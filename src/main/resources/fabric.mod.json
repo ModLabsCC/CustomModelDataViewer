@@ -4,8 +4,12 @@
   "version": "${version}",
   "name": "CustomModelDataViewer",
   "description": "List all items with custom model data",
-  "authors": [ "LiamXSage" ],
-  "contact": {},
+  "authors": [ "ModLabs" ],
+  "contact": {
+    "homepage": "https://modrinth.com/mod/cmdv",
+    "issues": "https://github.com/ModLabsCC/CustomModelDataViewer/issues",
+    "sources": "https://github.com/ModLabsCC/CustomModelDataViewer"
+  },
   "license": "Apache-2.0",
   "icon": "assets/custommodeldataviewer/icon.png",
   "environment": "client",
