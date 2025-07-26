@@ -55,7 +55,7 @@ class Custommodeldataviewer : ClientModInitializer {
                 )
 
                 // Render a custom icon or item (optional): overwrite the button’s render, or call context.drawItem(...)
-                button.tooltip = Tooltip.of(Text.literal("Custom Model Data Viewer"))
+                button.setTooltip(Tooltip.of(Text.literal("Custom Model Data Viewer")))
 
                 (screen as ScreenInvoker).invokeAddDrawableChild(button)
             }

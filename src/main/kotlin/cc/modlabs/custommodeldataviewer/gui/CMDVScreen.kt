@@ -1,6 +1,9 @@
 package cc.modlabs.custommodeldataviewer.gui
 
 import net.minecraft.client.MinecraftClient
+//? if >=1.21.8 {
+import net.minecraft.client.gl.RenderPipelines
+//?}
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.ingame.CreativeInventoryListener
 import net.minecraft.client.gui.screen.ingame.HandledScreen
@@ -56,14 +59,19 @@ class CMDVScreen(
 
     override fun init() {
         super.init()
-        searchBox = TextFieldWidget(textRenderer, x + 82,  y + 6, 80, 9, Text.translatable("itemGroup.search"))
+        searchBox = TextFieldWidget(MinecraftClient.getInstance().textRenderer, x + 82,  y + 6, 80, 9, Text.translatable("itemGroup.search"))
         searchBox!!.setMaxLength(50)
         searchBox!!.setDrawsBackground(false)
         searchBox!!.isVisible = true
         searchBox!!.setFocusUnlocked(false)
         searchBox!!.isFocused = true
         searchBox!!.text = ""
-        searchBox!!.setEditableColor(16777215)
+        //? if >=1.21.8 {
+        searchBox!!.setEditableColor(-1)
+        //?} else {
+        /*searchBox!!.setEditableColor(16777215)
+        *///?}
+
         addSelectableChild(searchBox)
         client!!.player!!.playerScreenHandler.removeListener(listener)
         listener = CreativeInventoryListener(client)
@@ -409,7 +417,13 @@ class CMDVScreen(
     }
 
     override fun drawBackground(context: DrawContext, delta: Float, mouseX: Int, mouseY: Int) {
-        context.drawTexture({ texture: Identifier? -> RenderLayer.getGuiTextured(texture) },BACKGROUND_TEXTURE, x, y, 0.0F, 0.0F, backgroundWidth, backgroundHeight, 256, 256)
+        context.drawTexture(
+            //? if >=1.21.8 {
+            RenderPipelines.GUI_TEXTURED
+            //?} else {
+            /*{ texture: Identifier? -> RenderLayer.getGuiTextured(texture) }
+            *///?}
+            ,BACKGROUND_TEXTURE, x, y, 0.0F, 0.0F, backgroundWidth, backgroundHeight, 256, 256)
 
         searchBox!!.render(context, mouseX, mouseY, delta)
 
@@ -419,7 +433,12 @@ class CMDVScreen(
         val identifier =
             if (hasScrollbar()) SCROLLER_TEXTURE else SCROLLER_DISABLED_TEXTURE
         context.drawGuiTexture(
-            Function { texture: Identifier? -> RenderLayer.getGuiTextured(texture) },
+            //? if >=1.21.8 {
+            RenderPipelines.GUI_TEXTURED
+            //?} else {
+            /*{ texture: Identifier? -> RenderLayer.getGuiTextured(texture) }
+            *///?}
+            ,
             identifier,
             i,
             j + ((k - j - 17).toFloat() * scrollPosition).toInt(),
@@ -430,11 +449,16 @@ class CMDVScreen(
 
     override fun drawForeground(context: DrawContext, mouseX: Int, mouseY: Int) {
         context.drawText(
-            textRenderer,
+            MinecraftClient.getInstance().textRenderer,
             Text.literal("Custom Models"),
             8,
             6,
-            4210752,
+            //? if >=1.21.8 {
+            -12566464
+            //?} else {
+            /*4210752
+            *///?}
+            ,
             false
         )
     }

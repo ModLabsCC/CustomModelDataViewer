@@ -5,9 +5,10 @@ plugins {
     kotlin("jvm") version "2.1.0"
     id("fabric-loom") version "1.10-SNAPSHOT"
     id("maven-publish")
+    id("com.modrinth.minotaur") version "2.+"
 }
 
-version = "${project.property("mod_version")}+${project.property("minecraft_version")}"
+version = "${project.property("mod_version")}+${stonecutter.current.version}"
 group = project.property("maven_group") as String
 
 
@@ -38,7 +39,7 @@ repositories {
 
 dependencies {
     // To change the versions see the gradle.properties file
-    minecraft("com.mojang:minecraft:${project.property("minecraft_version")}")
+    minecraft("com.mojang:minecraft:${stonecutter.current.version}")
     mappings("net.fabricmc:yarn:${project.property("yarn_mappings")}:v2")
     modImplementation("net.fabricmc:fabric-loader:${project.property("loader_version")}")
     modImplementation("net.fabricmc:fabric-language-kotlin:${project.property("kotlin_loader_version")}")
@@ -51,14 +52,14 @@ dependencies {
 
 tasks.processResources {
     inputs.property("version", project.version)
-    inputs.property("minecraft_version", project.property("minecraft_version"))
+    inputs.property("minecraft_version", stonecutter.current.version)
     inputs.property("loader_version", project.property("loader_version"))
     filteringCharset = "UTF-8"
 
     filesMatching("fabric.mod.json") {
         expand(
             "version" to project.version,
-            "minecraft_version" to project.property("minecraft_version"),
+            "minecraft_version" to stonecutter.current.version,
             "loader_version" to project.property("loader_version"),
             "kotlin_loader_version" to project.property("kotlin_loader_version")
         )
@@ -99,5 +100,19 @@ publishing {
         // Notice: This block does NOT have the same function as the block in the top level.
         // The repositories here will be used for publishing your artifact, not for
         // retrieving dependencies.
+    }
+}
+
+
+modrinth {
+    token.set(System.getenv("MODRINTH_TOKEN"))
+    projectId.set("eoafe5FT")
+    versionNumber.set(version as String)
+    versionType.set("release")
+    uploadFile.set(tasks.remapJar)
+    gameVersions.addAll(stonecutter.current.version)
+    loaders.add("fabric")
+    dependencies {
+        required.project("fabric-api")
     }
 }
