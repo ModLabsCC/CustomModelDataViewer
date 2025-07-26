@@ -3,13 +3,11 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm") version "2.1.0"
-    id("fabric-loom") version "1.9.2"
+    id("fabric-loom") version "1.10-SNAPSHOT"
     id("maven-publish")
 }
-val minecraft = project.property("minecraft_version") as String
 
-
-version = "${project.property("mod_version")}+${minecraft}"
+version = "${project.property("mod_version")}+${project.property("minecraft_version")}"
 group = project.property("maven_group") as String
 
 
@@ -24,32 +22,9 @@ java {
     // if it is present.
     // If you remove this line, sources will not be generated.
     withSourcesJar()
-    val java = if (stonecutter.eval(minecraft, ">=1.20.5"))
-        JavaVersion.VERSION_21 else JavaVersion.VERSION_17
+    val java = JavaVersion.VERSION_21
     targetCompatibility = java
     sourceCompatibility = java
-}
-
-loom {
-    splitEnvironmentSourceSets()
-
-    mods {
-        register("custommodeldataviewer") {
-            sourceSet("main")
-            sourceSet("client")
-        }
-    }
-
-    runConfigs.all {
-        ideConfigGenerated(true) // Run configurations are not created for subprojects by default
-        runDir = "../../run" // Use a shared run folder and create separate worlds
-    }
-}
-
-fabricApi {
-    configureDataGeneration() {
-        client = true
-    }
 }
 
 repositories {
@@ -70,9 +45,8 @@ dependencies {
 
     modImplementation("net.fabricmc.fabric-api:fabric-api:${project.property("fabric_version")}")
 
-
-    modLocalRuntime("com.terraformersmc", "modmenu", project.extra["modmenu_version"] as String)
-    modLocalRuntime("maven.modrinth", "cloth-config", project.extra["cloth_config_version"] as String)
+    modLocalRuntime("com.terraformersmc:modmenu:${project.property("modmenu_version")}")
+    modLocalRuntime("maven.modrinth:cloth-config:${project.property("cloth_config_version")}")
 }
 
 tasks.processResources {

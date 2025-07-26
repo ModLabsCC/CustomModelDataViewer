@@ -1,9 +1,6 @@
-package cc.modlabs.custommodeldataviewer.client
+package cc.modlabs.custommodeldataviewer
 
 import com.google.gson.JsonParser
-import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroupEntries
-import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents
-import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents.ModifyEntries
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener
 import net.minecraft.component.DataComponentTypes
 import net.minecraft.component.type.CustomModelDataComponent
@@ -14,6 +11,8 @@ import net.minecraft.resource.ResourceReloader
 import net.minecraft.text.Text
 import net.minecraft.util.DyeColor
 import net.minecraft.util.Identifier
+import net.minecraft.client.MinecraftClient
+import net.minecraft.item.Items
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executor
 
@@ -30,7 +29,7 @@ class ResourceListener : IdentifiableResourceReloadListener {
     ): CompletableFuture<Void> {
         val prepareFuture = CompletableFuture.supplyAsync(
             {
-                CustommodeldataviewerClient.logger.info("PrePareExecutor executed")
+                Custommodeldataviewer.logger.info("PrePareExecutor executed")
                 null // Preparation data (null in this case)
             },
             prepareExecutor
@@ -41,8 +40,12 @@ class ResourceListener : IdentifiableResourceReloadListener {
         }.thenAcceptAsync(
             {
                 val items = getAllItemsWithModelData(manager)
-                addEntriesToOperatorTab(items)
-                CustommodeldataviewerClient.logger.info("Resources reloaded - found ${items.size} custom modeled items")
+                val client = MinecraftClient.getInstance()
+                client.execute {
+                    Custommodeldataviewer.customModelItems.clear()
+                    Custommodeldataviewer.customModelItems.addAll(items)
+                }
+                Custommodeldataviewer.logger.info("Resources reloaded - found ${items.size} custom modeled items")
             },
             applyExecutor
         )
@@ -72,7 +75,7 @@ class ResourceListener : IdentifiableResourceReloadListener {
                                 val stack = ItemStack(item, 1)
 
                                 if (stack.isEmpty) {
-                                    CustommodeldataviewerClient.logger.warn("Empty item stack for $predicate : type ${item::class.simpleName} - identifier: $identifier - resource: $resource")
+                                    Custommodeldataviewer.logger.warn("Empty item stack for $predicate : type ${item::class.simpleName} - identifier: $identifier - resource: $resource")
                                     continue
                                 }
 
@@ -81,7 +84,7 @@ class ResourceListener : IdentifiableResourceReloadListener {
 
                                 val colors = mutableListOf<Int>()
                                 if (caseObj.get("tints") != null) {
-                                    CustommodeldataviewerClient.logger.info("Found tints for $predicate")
+                                    Custommodeldataviewer.logger.info("Found tints for $predicate")
                                     for (tint in caseObj.getAsJsonArray("tints")) {
                                         colors.add(tint.asJsonObject.getAsJsonPrimitive("default").asInt)
                                     }
@@ -96,7 +99,7 @@ class ResourceListener : IdentifiableResourceReloadListener {
                             }
 
                             if (found > 0) {
-                                CustommodeldataviewerClient.logger.info("Found $found custom model data for $identifier")
+                                Custommodeldataviewer.logger.info("Found $found custom model data for $identifier")
                             }
                         }
                     }
@@ -108,14 +111,5 @@ class ResourceListener : IdentifiableResourceReloadListener {
         }
 
         return itemsWithCustomModels.toList()
-    }
-
-    private fun addEntriesToOperatorTab(items: List<ItemStack>) {
-        ItemGroupEvents.modifyEntriesEvent(CustommodeldataviewerClient.CUSTOM_ITEM_GROUP_KEY)
-            .register(ModifyEntries { content: FabricItemGroupEntries ->
-                items.forEach {
-                    content.add(it)
-                }
-            })
     }
 }
