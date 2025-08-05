@@ -1,7 +1,7 @@
 package cc.modlabs.custommodeldataviewer.gui
 
 import net.minecraft.client.MinecraftClient
-//? if >=1.21.8 {
+//? if >=1.21.6 {
 import net.minecraft.client.gl.RenderPipelines
 //?}
 import net.minecraft.client.gui.DrawContext
@@ -66,7 +66,7 @@ class CMDVScreen(
         searchBox!!.setFocusUnlocked(false)
         searchBox!!.isFocused = true
         searchBox!!.text = ""
-        //? if >=1.21.8 {
+        //? if >=1.21.6 {
         searchBox!!.setEditableColor(-1)
         //?} else {
         /*searchBox!!.setEditableColor(16777215)
@@ -418,7 +418,7 @@ class CMDVScreen(
 
     override fun drawBackground(context: DrawContext, delta: Float, mouseX: Int, mouseY: Int) {
         context.drawTexture(
-            //? if >=1.21.8 {
+            //? if >=1.21.6 {
             RenderPipelines.GUI_TEXTURED
             //?} else {
             /*{ texture: Identifier? -> RenderLayer.getGuiTextured(texture) }
@@ -433,7 +433,7 @@ class CMDVScreen(
         val identifier =
             if (hasScrollbar()) SCROLLER_TEXTURE else SCROLLER_DISABLED_TEXTURE
         context.drawGuiTexture(
-            //? if >=1.21.8 {
+            //? if >=1.21.6 {
             RenderPipelines.GUI_TEXTURED
             //?} else {
             /*{ texture: Identifier? -> RenderLayer.getGuiTextured(texture) }
@@ -453,7 +453,7 @@ class CMDVScreen(
             Text.literal("Custom Models"),
             8,
             6,
-            //? if >=1.21.8 {
+            //? if >=1.21.6 {
             -12566464
             //?} else {
             /*4210752

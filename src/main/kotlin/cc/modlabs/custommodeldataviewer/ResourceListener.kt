@@ -1,5 +1,6 @@
 package cc.modlabs.custommodeldataviewer
 
+import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener
 import net.minecraft.component.DataComponentTypes
@@ -62,40 +63,67 @@ class ResourceListener : IdentifiableResourceReloadListener {
                     // Check for the new select model format
                     if (json.has("model")) {
                         val model = json.getAsJsonObject("model")
-                        if (model.get("type")?.asString ?.contains("select") == true &&
-                            model.get("property")?.asString?.contains("custom_model_data") == true) {
-
-                            val cases = model.getAsJsonArray("cases")
-                            val item = Registries.ITEM.get(Identifier.ofVanilla(identifier.path.split("/").last().split(".").first()))
+                        if (model.get("property")?.asString?.contains("custom_model_data") == true) {
 
                             var found = 0
-                            for (case in cases) {
-                                val caseObj = case.asJsonObject
-                                val predicate = caseObj.getAsJsonPrimitive("when").asString
-                                val stack = ItemStack(item, 1)
 
-                                if (stack.isEmpty) {
-                                    Custommodeldataviewer.logger.warn("Empty item stack for $predicate : type ${item::class.simpleName} - identifier: $identifier - resource: $resource")
-                                    continue
-                                }
+                            val modelType = model.get("type")?.asString
 
-                                stack.set(DataComponentTypes.ITEM_NAME, Text.literal(predicate))
+                            if(modelType?.contains("select") == true) {
+                                val cases = model.getAsJsonArray("cases")
+                                val item = Registries.ITEM.get(Identifier.ofVanilla(identifier.path.split("/").last().split(".").first()))
 
+                                for (case in cases) {
+                                    val caseObj = case.asJsonObject
+                                    val predicate = caseObj.getAsJsonPrimitive("when").asString
+                                    val caseModelObj = caseObj.getAsJsonObject("model")
+                                    val stack = ItemStack(item, 1)
 
-                                val colors = mutableListOf<Int>()
-                                if (caseObj.get("tints") != null) {
-                                    Custommodeldataviewer.logger.info("Found tints for $predicate")
-                                    for (tint in caseObj.getAsJsonArray("tints")) {
-                                        colors.add(tint.asJsonObject.getAsJsonPrimitive("default").asInt)
+                                    if (stack.isEmpty) {
+                                        Custommodeldataviewer.logger.warn("Empty item stack for $predicate : type ${item::class.simpleName} - identifier: $identifier - resource: $resource")
+                                        continue
                                     }
-                                    stack.set(DataComponentTypes.BASE_COLOR, DyeColor.byFireworkColor(colors.first()))
+
+                                    val modelName = caseModelObj.getAsJsonPrimitive("model").asString
+                                    stack.set(DataComponentTypes.ITEM_NAME, Text.literal(modelName))
+
+                                    val colors = getTints(caseObj, stack, modelName)
+
+                                    val customModelData = CustomModelDataComponent(listOf(), listOf(), listOf(predicate), colors)
+                                    stack.set(DataComponentTypes.CUSTOM_MODEL_DATA, customModelData)
+
+                                    itemsWithCustomModels.add(stack)
+                                    found++
                                 }
+                            } else if (modelType?.contains("range_dispatch") == true) {
+                                val entries = model.getAsJsonArray("entries")
+                                val item = Registries.ITEM.get(Identifier.ofVanilla(identifier.path.split("/").last().split(".").first()))
 
-                                val customModelData = CustomModelDataComponent(listOf(), listOf(), listOf(predicate), colors)
-                                stack.set(DataComponentTypes.CUSTOM_MODEL_DATA, customModelData)
+                                for (entry in entries) {
+                                    val entryObj = entry.asJsonObject
+                                    val threshold = entryObj.getAsJsonPrimitive("threshold").asInt
+                                    val entryModelObj = entryObj.getAsJsonObject("model")
 
-                                itemsWithCustomModels.add(stack)
-                                found++
+                                    // often has "model": "item/name", and possibly "type": "model"
+
+                                    val stack = ItemStack(item, 1)
+
+                                    if (stack.isEmpty) {
+                                        Custommodeldataviewer.logger.warn("Empty item stack for threshold $threshold : type ${item::class.simpleName} - identifier: $identifier - resource: $resource")
+                                        continue
+                                    }
+
+                                    val modelName = entryModelObj.getAsJsonPrimitive("model").asString
+                                    stack.set(DataComponentTypes.ITEM_NAME, Text.literal(modelName))
+
+                                    val colors = getTints(entryObj, stack, modelName)
+
+                                    val customModelData = CustomModelDataComponent(listOf(threshold.toFloat()), listOf(), listOf(), colors)
+                                    stack.set(DataComponentTypes.CUSTOM_MODEL_DATA, customModelData)
+
+                                    itemsWithCustomModels.add(stack)
+                                    found++
+                                }
                             }
 
                             if (found > 0) {
@@ -111,5 +139,17 @@ class ResourceListener : IdentifiableResourceReloadListener {
         }
 
         return itemsWithCustomModels.toList()
+    }
+
+    private fun getTints(jObj: JsonObject, stack: ItemStack, name: String): List<Int> {
+        val colors = mutableListOf<Int>()
+        if (jObj.get("tints") != null) {
+            Custommodeldataviewer.logger.info("Found tints for $name")
+            for (tint in jObj.getAsJsonArray("tints")) {
+                colors.add(tint.asJsonObject.getAsJsonPrimitive("default").asInt)
+            }
+            stack.set(DataComponentTypes.BASE_COLOR, DyeColor.byFireworkColor(colors.first()))
+        }
+        return colors
     }
 }
