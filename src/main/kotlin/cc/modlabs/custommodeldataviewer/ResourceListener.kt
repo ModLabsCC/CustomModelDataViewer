@@ -223,7 +223,11 @@ class ResourceListener : IdentifiableResourceReloadListener {
                     if (color != null) {
                         colors.add(color)
                         // Prefer DYED_COLOR for dye tints (per spec behavior)
-                        stack.set(DataComponentTypes.DYED_COLOR, DyedColorComponent(color))
+                        stack.set(DataComponentTypes.DYED_COLOR, DyedColorComponent(color
+                            //? if <1.21.6 {
+                            /*,true
+                            *///?}
+                        ))
                         appliedDyedColor = true
                     }
                 }
