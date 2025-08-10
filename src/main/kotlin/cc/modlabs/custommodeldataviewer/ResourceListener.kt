@@ -6,6 +6,7 @@ import com.google.gson.JsonParser
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener
 import net.minecraft.component.DataComponentTypes
 import net.minecraft.component.type.CustomModelDataComponent
+import net.minecraft.component.type.DyedColorComponent
 import net.minecraft.item.ItemStack
 import net.minecraft.registry.Registries
 import net.minecraft.resource.ResourceManager
@@ -14,7 +15,6 @@ import net.minecraft.text.Text
 import net.minecraft.util.DyeColor
 import net.minecraft.util.Identifier
 import net.minecraft.client.MinecraftClient
-import net.minecraft.item.Items
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executor
 
@@ -201,13 +201,75 @@ class ResourceListener : IdentifiableResourceReloadListener {
 
     private fun getTints(jObj: JsonObject, stack: ItemStack, name: String): List<Int> {
         val colors = mutableListOf<Int>()
-        if (jObj.get("tints") != null) {
-            Custommodeldataviewer.logger.info("Found tints for $name")
-            for (tint in jObj.getAsJsonArray("tints")) {
-                colors.add(tint.asJsonObject.getAsJsonPrimitive("default").asInt)
+        val tints = jObj.get("tints") ?: return colors
+        Custommodeldataviewer.logger.info("Found tints for $name")
+
+        var appliedDyedColor = false
+
+        for (tintElem in tints.asJsonArray) {
+            val tintObj = tintElem.asJsonObject
+            val typeRaw = tintObj.get("type")?.asString ?: continue
+            val type = typeRaw.substringAfterLast(':')
+
+            when (type) {
+                // Direct color
+                "constant" -> {
+                    parseColorFromJson(tintObj.get("value"))?.let { colors.add(it) }
+                }
+
+                // Defaultable sources (no live context in viewer)
+                "dye" -> {
+                    val color = parseColorFromJson(tintObj.get("default"))
+                    if (color != null) {
+                        colors.add(color)
+                        // Prefer DYED_COLOR for dye tints (per spec behavior)
+                        stack.set(DataComponentTypes.DYED_COLOR, DyedColorComponent(color))
+                        appliedDyedColor = true
+                    }
+                }
+                "firework", "map_color", "potion", "team", "custom_model_data" -> {
+                    parseColorFromJson(tintObj.get("default"))?.let { colors.add(it) }
+                }
+                else -> {
+                    // Unknown tint types are ignored but still collected if they had a default value
+                    parseColorFromJson(tintObj.get("default"))?.let { colors.add(it) }
+                }
             }
+        }
+
+        // For non-dye tint previews, use BASE_COLOR as a generic cue
+        if (!appliedDyedColor && colors.isNotEmpty()) {
             stack.set(DataComponentTypes.BASE_COLOR, DyeColor.byFireworkColor(colors.first()))
         }
         return colors
+    }
+
+    private fun parseColorFromJson(element: JsonElement?): Int? {
+        if (element == null) return null
+        if (element.isJsonPrimitive && element.asJsonPrimitive.isNumber) {
+            return try { element.asInt } catch (_: Exception) { null }
+        }
+        if (element.isJsonArray) {
+            val arr = element.asJsonArray
+            if (arr.size() >= 3) {
+                val r = arr[0]
+                val g = arr[1]
+                val b = arr[2]
+                val rf = r.asDouble
+                val gf = g.asDouble
+                val bf = b.asDouble
+                val r255 = toChannel255(rf)
+                val g255 = toChannel255(gf)
+                val b255 = toChannel255(bf)
+                return (r255 shl 16) or (g255 shl 8) or b255
+            }
+        }
+        return null
+    }
+
+    private fun toChannel255(value: Double): Int {
+        // If value in [0,1], scale; otherwise clamp as 0..255 (supports json providing 0..255 directly)
+        val scaled = if (value <= 1.0) (value * 255.0) else value
+        return scaled.coerceIn(0.0, 255.0).toInt()
     }
 }
