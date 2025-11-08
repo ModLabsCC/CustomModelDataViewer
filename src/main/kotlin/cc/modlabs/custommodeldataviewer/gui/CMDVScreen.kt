@@ -13,7 +13,9 @@ import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.ingame.CreativeInventoryListener
 import net.minecraft.client.gui.screen.ingame.HandledScreen
 import net.minecraft.client.gui.widget.TextFieldWidget
-import net.minecraft.client.render.RenderLayer
+//? if <1.21.6 {
+/*import net.minecraft.client.render.RenderLayer
+*///?}
 import net.minecraft.client.util.InputUtil
 import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.inventory.SimpleInventory
@@ -27,7 +29,6 @@ import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.text.Text
 import net.minecraft.util.Identifier
 import net.minecraft.util.math.MathHelper
-import java.util.function.Function
 
 class CMDVScreen(
     private val allItems: List<ItemStack>
