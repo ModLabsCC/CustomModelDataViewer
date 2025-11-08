@@ -3,14 +3,16 @@ package cc.modlabs.custommodeldataviewer.gui
 import net.minecraft.client.MinecraftClient
 //? if >=1.21.6 {
 import net.minecraft.client.gl.RenderPipelines
+//?}
+//? if >=1.21.9 {
 import net.minecraft.client.gui.Click
+import net.minecraft.client.input.CharInput
+import net.minecraft.client.input.KeyInput
 //?}
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.ingame.CreativeInventoryListener
 import net.minecraft.client.gui.screen.ingame.HandledScreen
 import net.minecraft.client.gui.widget.TextFieldWidget
-import net.minecraft.client.input.CharInput
-import net.minecraft.client.input.KeyInput
 import net.minecraft.client.render.RenderLayer
 import net.minecraft.client.util.InputUtil
 import net.minecraft.entity.player.PlayerInventory
