@@ -23,6 +23,38 @@ class ResourceListener : IdentifiableResourceReloadListener {
         return Identifier.of("custommodeldataviewer", "resourcelistener")
     }
 
+    //? if >=1.21.9 {
+    override fun reload(
+        store: ResourceReloader.Store,
+        prepareExecutor: Executor,
+        synchronizer: ResourceReloader.Synchronizer,
+        applyExecutor: Executor
+    ): CompletableFuture<Void> {
+        val prepareFuture = CompletableFuture.supplyAsync(
+            {
+                Custommodeldataviewer.logger.info("PrePareExecutor executed")
+                null // Preparation data (null in this case)
+            },
+            prepareExecutor
+        )
+
+        return prepareFuture.thenCompose { _ ->
+            synchronizer.whenPrepared(null)
+        }.thenAcceptAsync(
+            {
+                val items = getAllItemsWithModelData(store.resourceManager)
+                val client = MinecraftClient.getInstance()
+                client.execute {
+                    Custommodeldataviewer.customModelItems.clear()
+                    Custommodeldataviewer.customModelItems.addAll(items)
+                }
+                Custommodeldataviewer.logger.info("Resources reloaded - found ${items.size} custom modeled items")
+            },
+            applyExecutor
+        )
+    }
+    //?} else {
+    /*
     override fun reload(
         synchronizer: ResourceReloader.Synchronizer,
         manager: ResourceManager,
@@ -52,6 +84,7 @@ class ResourceListener : IdentifiableResourceReloadListener {
             applyExecutor
         )
     }
+    *///?}
 
     private fun getAllItemsWithModelData(manager: ResourceManager): List<ItemStack> {
         val itemsWithCustomModels = mutableSetOf<ItemStack>()
