@@ -3,11 +3,14 @@ package cc.modlabs.custommodeldataviewer.gui
 import net.minecraft.client.MinecraftClient
 //? if >=1.21.6 {
 import net.minecraft.client.gl.RenderPipelines
+import net.minecraft.client.gui.Click
 //?}
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.ingame.CreativeInventoryListener
 import net.minecraft.client.gui.screen.ingame.HandledScreen
 import net.minecraft.client.gui.widget.TextFieldWidget
+import net.minecraft.client.input.CharInput
+import net.minecraft.client.input.KeyInput
 import net.minecraft.client.render.RenderLayer
 import net.minecraft.client.util.InputUtil
 import net.minecraft.entity.player.PlayerInventory
@@ -106,12 +109,20 @@ class CMDVScreen(
         handler.scrollItems(0.0f)
     }
 
-    override fun charTyped(chr: Char, modifiers: Int): Boolean {
+    //? if >=1.21.9 {
+    override fun charTyped(charInput: CharInput): Boolean {
+    //?} else {
+    /*override fun charTyped(chr: Char, modifiers: Int): Boolean {
+    *///?}
         return if (this.ignoreTypedCharacter) {
             false
         } else {
             val string = this.searchBox!!.text
-            if (this.searchBox!!.charTyped(chr, modifiers)) {
+            //? if >=1.21.9 {
+            if (this.searchBox!!.charTyped(charInput)) {
+            //?} else {
+            /*if (this.searchBox!!.charTyped(chr, modifiers)) {
+            *///?}
                 if (string != this.searchBox!!.text) {
                     this.search()
                 }
@@ -123,34 +134,62 @@ class CMDVScreen(
         }
     }
 
-    override fun keyPressed(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
+    //? if >=1.21.9 {
+    override fun keyPressed(keyInput: KeyInput): Boolean {
+    //?} else {
+    /*override fun keyPressed(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
+    *///?}
+
         this.ignoreTypedCharacter = false
         val bl = !this.isCreativeInventorySlot(this.focusedSlot) || this.focusedSlot!!.hasStack()
-        val bl2 = InputUtil.fromKeyCode(keyCode, scanCode).toInt().isPresent
+        //? if >=1.21.9 {
+        val bl2 = InputUtil.fromKeyCode(keyInput).toInt().isPresent
+        return if (bl && bl2 && this.handleHotbarKeyPressed(keyInput)) {
+        //?} else {
+        /*val bl2 = InputUtil.fromKeyCode(keyCode, scanCode).toInt().isPresent
         return if (bl && bl2 && this.handleHotbarKeyPressed(keyCode, scanCode)) {
+        *///?}
             this.ignoreTypedCharacter = true
             true
         } else {
             val string = this.searchBox!!.text
-            if (this.searchBox!!.keyPressed(keyCode, scanCode, modifiers)) {
+            //? if >=1.21.9 {
+            if (this.searchBox!!.keyPressed(keyInput)) {
+            //?} else {
+            /*if (this.searchBox!!.keyPressed(keyCode, scanCode, modifiers)) {
+            *///?}
                 if (string != this.searchBox!!.text) {
                     this.search()
                 }
 
                 true
             } else {
-                (this.searchBox!!.isFocused && this.searchBox!!.isVisible && keyCode != 256) || super.keyPressed(
+                //? if >=1.21.9 {
+                (this.searchBox!!.isFocused && this.searchBox!!.isVisible && keyInput.key != 256) || super.keyPressed(
+                    keyInput
+                )
+                //?} else {
+                /*(this.searchBox!!.isFocused && this.searchBox!!.isVisible && keyCode != 256) || super.keyPressed(
                     keyCode,
                     scanCode,
                     modifiers
                 )
+                *///?}
             }
         }
     }
 
-    override fun keyReleased(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
+    //? if >=1.21.9 {
+    override fun keyReleased(keyInput: KeyInput): Boolean {
+    //?} else {
+    /*override fun keyReleased(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
+    *///?}
         this.ignoreTypedCharacter = false
-        return super.keyReleased(keyCode, scanCode, modifiers)
+        //? if >=1.21.9 {
+        return super.keyReleased(keyInput)
+        //?} else {
+        /*return super.keyReleased(keyCode, scanCode, modifiers)
+        *///?}
     }
 
     override fun mouseScrolled(
@@ -209,6 +248,32 @@ class CMDVScreen(
         return handler.shouldShowScrollbar()
     }
 
+    //? if >=1.21.9 {
+    override fun mouseClicked(click: Click, doubled: Boolean): Boolean {
+        if (click.button() == 0) {
+            val d = click.x - x.toDouble()
+            val e = click.y - y.toDouble()
+
+            for (itemGroup in ItemGroups.getGroupsToDisplay()) {
+                if (isClickInTab(itemGroup, d, e)) {
+                    return true
+                }
+            }
+
+            if (isClickInScrollbar(
+                    click.x,
+                    click.y
+                )
+            ) {
+                scrolling = hasScrollbar()
+                return true
+            }
+        }
+
+        return super.mouseClicked(click, doubled)
+    }
+    //?} else {
+    /*
     override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
         if (button == 0) {
             val d = mouseX - x.toDouble()
@@ -232,7 +297,23 @@ class CMDVScreen(
 
         return super.mouseClicked(mouseX, mouseY, button)
     }
+    *///?}
 
+    //? if >=1.21.9 {
+    override fun mouseDragged(click: Click, offsetX: Double, offsetY: Double): Boolean {
+        if (scrolling) {
+            val i = y + 18
+            val j = i + 112
+            scrollPosition = (click.y.toFloat() - i.toFloat() - 7.5f) / ((j - i).toFloat() - 15.0f)
+            scrollPosition = MathHelper.clamp(scrollPosition, 0.0f, 1.0f)
+            handler.scrollItems(scrollPosition)
+            return true
+        } else {
+            return super.mouseDragged(click, offsetX, offsetY)
+        }
+    }
+    //?} else {
+    /*
     override fun mouseDragged(mouseX: Double, mouseY: Double, button: Int, deltaX: Double, deltaY: Double): Boolean {
         if (scrolling) {
             val i = y + 18
@@ -245,7 +326,18 @@ class CMDVScreen(
             return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY)
         }
     }
+    *///?}
 
+    //? if >=1.21.9 {
+    override fun mouseReleased(click: Click): Boolean {
+        if (click.button() == 0) {
+            scrolling = false
+        }
+
+        return super.mouseReleased(click)
+    }
+    //?} else {
+    /*
     override fun mouseReleased(mouseX: Double, mouseY: Double, button: Int): Boolean {
         if (button == 0) {
             scrolling = false
@@ -253,6 +345,7 @@ class CMDVScreen(
 
         return super.mouseReleased(mouseX, mouseY, button)
     }
+    *///?}
 
     override fun onMouseClick(slot: Slot?, slotId: Int, button: Int, actionType: SlotActionType?) {
         var actionType = actionType
@@ -410,7 +503,12 @@ class CMDVScreen(
         return false
     }
 
-    override fun isClickOutsideBounds(mouseX: Double, mouseY: Double, left: Int, top: Int, button: Int): Boolean {
+    //? if >=1.21.9 {
+    override fun isClickOutsideBounds(mouseX: Double, mouseY: Double, left: Int, top: Int): Boolean {
+    //?} else {
+    /*override fun isClickOutsideBounds(mouseX: Double, mouseY: Double, left: Int, top: Int, button: Int): Boolean {
+    *///?}
+
         val bl = mouseX < left.toDouble() || mouseY < top.toDouble() || mouseX >= (left + backgroundWidth).toDouble() || mouseY >= (top + backgroundHeight).toDouble()
         lastClickOutsideBounds = bl
         return lastClickOutsideBounds

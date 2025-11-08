@@ -9,7 +9,7 @@ class LockableSlot(inventory: Inventory?, i: Int, j: Int, k: Int) : Slot(invento
     override fun canTakeItems(playerEntity: PlayerEntity): Boolean {
         val itemStack = this.stack
         return if (super.canTakeItems(playerEntity) && !itemStack.isEmpty) {
-            itemStack.isItemEnabled(playerEntity.world.enabledFeatures) && !itemStack.contains(
+            !itemStack.contains(
                 DataComponentTypes.CREATIVE_SLOT_LOCK
             )
         } else {
