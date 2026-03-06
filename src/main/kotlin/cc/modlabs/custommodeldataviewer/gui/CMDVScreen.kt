@@ -354,159 +354,152 @@ class CMDVScreen(
 
     override fun slotClicked(slot: Slot, slotId: Int, button: Int, actionType: ClickType) {
         val player = minecraft?.player ?: return
-        var actionType = actionType
+        val gameMode = minecraft?.gameMode ?: return
+        var clickType = actionType
 
-        val bl = actionType == ClickType.QUICK_MOVE
-        actionType = if (slotId == -999 && actionType == ClickType.PICKUP) ClickType.THROW else actionType
-        if (actionType != ClickType.THROW || player.canDropItems()) {
-            if (slotId == -999 && actionType != ClickType.QUICK_CRAFT) {
-                if (!menu.carried
-                        .isEmpty() && lastClickOutsideBounds
-                ) {
-                    if (!player.canDropItems()) {
-                        return
-                    }
+        if (isCreativeInventorySlot(slot)) {
+            searchBox?.moveCursorToEnd(false)
+            searchBox?.setHighlightPos(0)
+        }
 
-                    if (button == 0) {
-                        player.drop(menu.carried, true)
-                        minecraft!!.gameMode!!.handleCreativeModeItemDrop(menu.carried)
-                        menu.carried = ItemStack.EMPTY
-                    }
+        val quickMove = clickType == ClickType.QUICK_MOVE
+        clickType = if (slotId == -999 && clickType == ClickType.PICKUP) ClickType.THROW else clickType
 
-                    if (button == 1) {
-                        val itemStack = menu.carried.split(1)
-                        player.drop(itemStack, true)
-                        minecraft!!.gameMode!!.handleCreativeModeItemDrop(itemStack)
-                    }
-                }
-            } else {
-                if (!slot.mayPickup(player)) {
-                    return
-                }
-
-                if (slot === deleteItemSlot && bl) {
-                    for (i in player.inventoryMenu.items.indices) {
-                        player.inventoryMenu.getSlot(i).set(ItemStack.EMPTY)
-                        minecraft!!.gameMode!!.handleCreativeModeItemAdd(ItemStack.EMPTY, i)
-                    }
-                } else if (selectedTabType == CreativeModeTab.Type.INVENTORY) {
-                    if (slot === deleteItemSlot) {
-                        menu.carried = ItemStack.EMPTY
-                    } else if (actionType == ClickType.THROW && slot.hasItem()) {
-                        val itemStack = slot.remove(if (button == 0) 1 else slot.item.maxStackSize)
-                        val itemStack2 = slot.item
-                        player.drop(itemStack, true)
-                        minecraft!!.gameMode!!.handleCreativeModeItemDrop(itemStack)
-                        minecraft!!.gameMode!!.handleCreativeModeItemAdd(
-                            itemStack2,
-                            (slot as CreativeSlot).slot.index
-                        )
-                    } else if (actionType == ClickType.THROW && slotId == -999 && !menu.carried
-                            .isEmpty()
-                    ) {
-                        player.drop(menu.carried, true)
-                        minecraft!!.gameMode!!.handleCreativeModeItemDrop(menu.carried)
-                        menu.carried = ItemStack.EMPTY
-                    } else {
-                        player.inventoryMenu.clicked(
-                            (slot as CreativeSlot).slot.index,
-                            button,
-                            actionType,
-                            player
-                        )
-                        player.inventoryMenu.broadcastChanges()
-                    }
-                } else if (actionType != ClickType.QUICK_CRAFT && slot.container === INVENTORY) {
-                    val itemStack = menu.carried
-                    val itemStack2 = slot.item
-                    if (actionType == ClickType.SWAP) {
-                        if (!itemStack2.isEmpty()) {
-                            player.inventory
-                                .setItem(button, itemStack2.copyWithCount(itemStack2.maxStackSize))
-                            player.inventoryMenu.broadcastChanges()
-                        }
-
-                        return
-                    }
-
-                    if (actionType == ClickType.CLONE) {
-                        if (menu.carried.isEmpty() && slot.hasItem()) {
-                            val itemStack3 = slot.item
-                            menu.carried = itemStack3.copyWithCount(itemStack3.maxStackSize)
-                        }
-
-                        return
-                    }
-
-                    if (actionType == ClickType.THROW) {
-                        if (!itemStack2.isEmpty()) {
-                            val itemStack3 = itemStack2.copyWithCount(if (button == 0) 1 else itemStack2.maxStackSize)
-                            player.drop(itemStack3, true)
-                            minecraft!!.gameMode!!.handleCreativeModeItemDrop(itemStack3)
-                        }
-
-                        return
-                    }
-
-                    if (!itemStack!!.isEmpty() && !itemStack2.isEmpty() && ItemStack.isSameItemSameComponents(
-                            itemStack,
-                            itemStack2
-                        )
-                    ) {
-                        if (button == 0) {
-                            if (bl) {
-                                itemStack.count = itemStack.maxStackSize
-                            } else if (itemStack.count < itemStack.maxStackSize) {
-                                itemStack.grow(1)
-                            }
-                        } else {
-                            itemStack.shrink(1)
-                        }
-                    } else if (!itemStack2.isEmpty() && itemStack.isEmpty()) {
-                        val j = if (bl) itemStack2.maxStackSize else itemStack2.count
-                        menu.carried = itemStack2.copyWithCount(j)
-                    } else if (button == 0) {
-                        menu.carried = ItemStack.EMPTY
-                    } else if (!menu.carried.isEmpty()) {
-                        menu.carried.shrink(1)
-                    }
-                } else {
-                    val itemStack =
-                        menu.getSlot(slotId)
-                            .item
-                    menu.clicked(
-                        slotId,
-                        button,
-                        actionType,
-                        player
-                    )
-                    if (AbstractContainerMenu.getQuickcraftHeader(button) == 2) {
-                        for (k in 0..8) {
-                            minecraft!!.gameMode!!.handleCreativeModeItemAdd(
-                                menu.getSlot(
-                                    45 + k
-                                ).item, 36 + k
-                            )
-                        }
-                    } else if (Inventory.isHotbarSlot(slot.containerSlot)) {
-                        if (actionType == ClickType.THROW && !itemStack.isEmpty() && !menu.carried.isEmpty()
-                        ) {
-                            val k = if (button == 0) 1 else itemStack.getCount()
-                            val itemStack3 = itemStack.copyWithCount(k)
-                            itemStack.shrink(k)
-                            player.drop(itemStack3, true)
-                            minecraft!!.gameMode!!.handleCreativeModeItemDrop(itemStack3)
-                        }
-
-                        player.inventoryMenu.broadcastChanges()
-                    }
+        if (slotId == -999 && selectedTabType != CreativeModeTab.Type.INVENTORY && clickType != ClickType.QUICK_CRAFT) {
+            if (!menu.carried.isEmpty && lastClickOutsideBounds) {
+                if (button == 0) {
+                    player.drop(menu.carried, true)
+                    gameMode.handleCreativeModeItemDrop(menu.carried)
+                    menu.carried = ItemStack.EMPTY
+                } else if (button == 1) {
+                    val dropped = menu.carried.split(1)
+                    player.drop(dropped, true)
+                    gameMode.handleCreativeModeItemDrop(dropped)
                 }
             }
+            return
+        }
+
+        if (slotId == -999) {
+            if (clickType == ClickType.QUICK_CRAFT) {
+                menu.clicked(slotId, button, clickType, player)
+                if (AbstractContainerMenu.getQuickcraftHeader(button) == 2) {
+                    for (k in 0..8) {
+                        gameMode.handleCreativeModeItemAdd(menu.getSlot(45 + k).item, 36 + k)
+                    }
+                }
+                player.inventoryMenu.broadcastChanges()
+            }
+            return
+        }
+
+        if (!slot.mayPickup(player)) {
+            return
+        }
+
+        if (slot === deleteItemSlot && quickMove) {
+            for (i in player.inventoryMenu.items.indices) {
+                gameMode.handleCreativeModeItemAdd(ItemStack.EMPTY, i)
+            }
+            return
+        }
+
+        if (selectedTabType == CreativeModeTab.Type.INVENTORY) {
+            if (slot === deleteItemSlot) {
+                menu.carried = ItemStack.EMPTY
+            } else if (clickType == ClickType.THROW && slot.hasItem()) {
+                val removed = slot.remove(if (button == 0) 1 else slot.item.maxStackSize)
+                val remaining = slot.item
+                player.drop(removed, true)
+                gameMode.handleCreativeModeItemDrop(removed)
+                gameMode.handleCreativeModeItemAdd(remaining, (slot as CreativeSlot).slot.index)
+            } else if (clickType == ClickType.THROW && !menu.carried.isEmpty) {
+                player.drop(menu.carried, true)
+                gameMode.handleCreativeModeItemDrop(menu.carried)
+                menu.carried = ItemStack.EMPTY
+            } else {
+                player.inventoryMenu.clicked(
+                    if (slotId == -999) slotId else (slot as CreativeSlot).slot.index,
+                    button,
+                    clickType,
+                    player
+                )
+                player.inventoryMenu.broadcastChanges()
+            }
+            return
+        }
+
+        if (clickType != ClickType.QUICK_CRAFT && slot.container === INVENTORY) {
+            val carried = menu.carried
+            val slotStack = slot.item
+
+            if (clickType == ClickType.SWAP) {
+                if (!slotStack.isEmpty) {
+                    player.inventory.setItem(button, slotStack.copyWithCount(slotStack.maxStackSize))
+                    player.inventoryMenu.broadcastChanges()
+                }
+                return
+            }
+
+            if (clickType == ClickType.CLONE) {
+                if (menu.carried.isEmpty && slot.hasItem()) {
+                    menu.carried = slotStack.copyWithCount(slotStack.maxStackSize)
+                }
+                return
+            }
+
+            if (clickType == ClickType.THROW) {
+                if (!slotStack.isEmpty) {
+                    val dropped = slotStack.copyWithCount(if (button == 0) 1 else slotStack.maxStackSize)
+                    player.drop(dropped, true)
+                    gameMode.handleCreativeModeItemDrop(dropped)
+                }
+                return
+            }
+
+            if (!carried.isEmpty && !slotStack.isEmpty && ItemStack.isSameItemSameComponents(carried, slotStack)) {
+                if (button == 0) {
+                    if (quickMove) {
+                        carried.count = carried.maxStackSize
+                    } else if (carried.count < carried.maxStackSize) {
+                        carried.grow(1)
+                    }
+                } else {
+                    carried.shrink(1)
+                }
+            } else if (!slotStack.isEmpty && carried.isEmpty) {
+                val count = if (quickMove) slotStack.maxStackSize else slotStack.count
+                menu.carried = slotStack.copyWithCount(count)
+            } else if (button == 0) {
+                menu.carried = ItemStack.EMPTY
+            } else if (!menu.carried.isEmpty) {
+                menu.carried.shrink(1)
+            }
+            return
+        }
+
+        val previousStack = if (slotId == -999) ItemStack.EMPTY else menu.getSlot(slotId).item.copy()
+        menu.clicked(slotId, button, clickType, player)
+        if (AbstractContainerMenu.getQuickcraftHeader(button) == 2) {
+            for (k in 0..8) {
+                gameMode.handleCreativeModeItemAdd(menu.getSlot(45 + k).item, 36 + k)
+            }
+        } else if (slotId != -999 && Inventory.isHotbarSlot(slot.containerSlot)) {
+            val currentStack = menu.getSlot(slotId).item
+            gameMode.handleCreativeModeItemAdd(currentStack, 36 + slot.containerSlot)
+            if (clickType == ClickType.SWAP && button in 0..8) {
+                gameMode.handleCreativeModeItemAdd(previousStack, 36 + button)
+            } else if (clickType == ClickType.THROW && !previousStack.isEmpty) {
+                val dropped = previousStack.copyWithCount(if (button == 0) 1 else previousStack.maxStackSize)
+                player.drop(dropped, true)
+                gameMode.handleCreativeModeItemDrop(dropped)
+            }
+            player.inventoryMenu.broadcastChanges()
         }
     }
 
     private fun isCreativeInventorySlot(slot: Slot?): Boolean {
-        return false
+        return slot != null && slot.container === INVENTORY
     }
 
     //? if >=1.21.9 {
