@@ -472,10 +472,10 @@ class CMDVScreen(
                     }
                 } else {
                     val itemStack =
-                        menu.getSlot(slot.index)
+                        menu.getSlot(slotId)
                             .item
                     menu.clicked(
-                        slot.index,
+                        slotId,
                         button,
                         actionType,
                         player
