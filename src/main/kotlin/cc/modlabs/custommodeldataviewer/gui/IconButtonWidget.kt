@@ -18,6 +18,7 @@ class IconButtonWidget(
         mouseY: Int,
         delta: Float
     ) {
+        renderDefaultSprite(context)
         context.renderItem(
             iconStack,
             this.x + (this.width - 16) / 2,
