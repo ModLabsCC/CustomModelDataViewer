@@ -566,8 +566,3 @@ class CMDVScreen(
         renderTooltip(context, mouseX, mouseY)
     }
 }
-
-
-
-
-
