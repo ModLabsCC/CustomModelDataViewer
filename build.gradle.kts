@@ -77,6 +77,7 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.withType<KotlinCompile>().configureEach {
     compilerOptions.jvmTarget.set(JvmTarget.fromTarget(targetJavaVersion.toString()))
+    compilerOptions.freeCompilerArgs.add("-Xno-param-assertions")
 }
 
 tasks.jar {
@@ -117,7 +118,6 @@ modrinth {
         required.project("fabric-language-kotlin")
     }
 }
-
 
 
 
