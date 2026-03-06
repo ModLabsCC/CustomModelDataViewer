@@ -1,26 +1,24 @@
 package cc.modlabs.custommodeldataviewer.gui
 
-import net.minecraft.client.gui.DrawContext
-import net.minecraft.client.gui.widget.ButtonWidget
-import net.minecraft.item.ItemStack
-import net.minecraft.text.Text
+import net.minecraft.client.gui.GuiGraphics
+import net.minecraft.client.gui.components.Button
+import net.minecraft.world.item.ItemStack
+import net.minecraft.network.chat.Component as MCText
 
 class IconButtonWidget(
     x: Int, y: Int, width: Int, height: Int,
     val iconStack: ItemStack,
-    message: Text,
-    onPress: (ButtonWidget) -> Unit
-) : ButtonWidget(x, y, width, height, message, onPress, DEFAULT_NARRATION_SUPPLIER) {
+    message: MCText,
+    onPress: (Button) -> Unit
+) : Button(x, y, width, height, message, onPress, DEFAULT_NARRATION) {
 
-    override fun renderWidget(
-        context: DrawContext,
+    override fun renderContents(
+        context: GuiGraphics,
         mouseX: Int,
         mouseY: Int,
         delta: Float
     ) {
-        super.renderWidget(context, mouseX, mouseY, delta)
-        // Draw the item icon in the center of the button
-        context.drawItem(
+        context.renderItem(
             iconStack,
             this.x + (this.width - 16) / 2,
             this.y + (this.height - 16) / 2

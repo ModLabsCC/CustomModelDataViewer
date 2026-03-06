@@ -1,62 +1,42 @@
 package cc.modlabs.custommodeldataviewer.gui
 
-import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.item.ItemStack
-import net.minecraft.screen.slot.Slot
-import net.minecraft.util.Identifier
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.inventory.Slot
+import net.minecraft.resources.Identifier
 
-class CreativeSlot(val slot: Slot, invSlot: Int, x: Int, y: Int) : Slot(
-    slot.inventory, invSlot, x, y
-) {
-    override fun onTakeItem(player: PlayerEntity?, stack: ItemStack?) {
-        this.slot.onTakeItem(player, stack)
+class CreativeSlot(val slot: Slot, invSlot: Int, x: Int, y: Int) : Slot(slot.container, invSlot, x, y) {
+    override fun onTake(player: Player, stack: ItemStack) {
+        slot.onTake(player, stack)
     }
 
-    override fun canInsert(stack: ItemStack?): Boolean {
-        return this.slot.canInsert(stack)
+    override fun mayPlace(stack: ItemStack): Boolean = slot.mayPlace(stack)
+
+    override fun getItem(): ItemStack = slot.item
+
+    override fun hasItem(): Boolean = slot.hasItem()
+
+    override fun setByPlayer(stack: ItemStack, previousStack: ItemStack) {
+        slot.setByPlayer(stack, previousStack)
     }
 
-    override fun getStack(): ItemStack {
-        return this.slot.stack
+    override fun set(stack: ItemStack) {
+        slot.set(stack)
     }
 
-    override fun hasStack(): Boolean {
-        return this.slot.hasStack()
+    override fun setChanged() {
+        slot.setChanged()
     }
 
-    override fun setStack(stack: ItemStack?, previousStack: ItemStack?) {
-        this.slot.setStack(stack, previousStack)
-    }
+    override fun getMaxStackSize(): Int = slot.maxStackSize
 
-    override fun setStackNoCallbacks(stack: ItemStack?) {
-        this.slot.setStackNoCallbacks(stack)
-    }
+    override fun getMaxStackSize(stack: ItemStack): Int = slot.getMaxStackSize(stack)
 
-    override fun markDirty() {
-        this.slot.markDirty()
-    }
+    override fun getNoItemIcon(): Identifier? = slot.noItemIcon
 
-    override fun getMaxItemCount(): Int {
-        return this.slot.maxItemCount
-    }
+    override fun remove(amount: Int): ItemStack = slot.remove(amount)
 
-    override fun getMaxItemCount(stack: ItemStack?): Int {
-        return this.slot.getMaxItemCount(stack)
-    }
+    override fun isActive(): Boolean = slot.isActive
 
-    override fun getBackgroundSprite(): Identifier? {
-        return this.slot.backgroundSprite
-    }
-
-    override fun takeStack(amount: Int): ItemStack? {
-        return this.slot.takeStack(amount)
-    }
-
-    override fun isEnabled(): Boolean {
-        return this.slot.isEnabled
-    }
-
-    override fun canTakeItems(playerEntity: PlayerEntity?): Boolean {
-        return this.slot.canTakeItems(playerEntity)
-    }
+    override fun mayPickup(playerEntity: Player): Boolean = slot.mayPickup(playerEntity)
 }

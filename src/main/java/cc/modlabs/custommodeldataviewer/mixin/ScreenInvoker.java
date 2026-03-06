@@ -1,13 +1,14 @@
 package cc.modlabs.custommodeldataviewer.mixin;
 
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.Element;
+import net.minecraft.client.gui.components.Renderable;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.narration.NarratableEntry;
+import net.minecraft.client.gui.screens.Screen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
-// Use generics to match the original method signature and allow any widget type
 @Mixin(Screen.class)
 public interface ScreenInvoker {
-    @Invoker("addDrawableChild")
-    <T extends Element> T invokeAddDrawableChild(T drawableElement);
+    @Invoker("addRenderableWidget")
+    <T extends GuiEventListener & Renderable & NarratableEntry> T invokeAddRenderableWidget(T drawableElement);
 }

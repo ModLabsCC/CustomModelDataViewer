@@ -8,7 +8,7 @@ plugins {
     id("com.modrinth.minotaur") version "2.+"
 }
 
-version = "${project.property("mod_version")}+${stonecutter.current.version}"
+version = "${project.property("mod_version")}+${project.property("minecraft_version")}"
 group = project.property("maven_group") as String
 
 
@@ -39,7 +39,7 @@ repositories {
 
 dependencies {
     // To change the versions see the gradle.properties file
-    minecraft("com.mojang:minecraft:${stonecutter.current.version}")
+    minecraft("com.mojang:minecraft:${project.property("minecraft_version")}")
     mappings(loom.officialMojangMappings())
     modImplementation("net.fabricmc:fabric-loader:${project.property("loader_version")}")
     modImplementation("net.fabricmc:fabric-language-kotlin:${project.property("kotlin_loader_version")}")
@@ -52,14 +52,14 @@ dependencies {
 
 tasks.processResources {
     inputs.property("version", project.version)
-    inputs.property("minecraft_version", stonecutter.current.version)
+    inputs.property("minecraft_version", project.property("minecraft_version"))
     inputs.property("loader_version", project.property("loader_version"))
     filteringCharset = "UTF-8"
 
     filesMatching("fabric.mod.json") {
         expand(
             "version" to project.version,
-            "minecraft_version" to stonecutter.current.version,
+            "minecraft_version" to project.property("minecraft_version"),
             "loader_version" to project.property("loader_version"),
             "kotlin_loader_version" to project.property("kotlin_loader_version")
         )
@@ -110,11 +110,14 @@ modrinth {
     versionNumber.set(version as String)
     versionType.set("release")
     uploadFile.set(tasks.remapJar)
-    gameVersions.addAll(stonecutter.current.version)
+    gameVersions.add(project.property("minecraft_version") as String)
     loaders.add("fabric")
     dependencies {
         required.project("fabric-api")
         required.project("fabric-language-kotlin")
     }
 }
+
+
+
 

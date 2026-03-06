@@ -4,30 +4,30 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener
-import net.minecraft.component.DataComponentTypes
-import net.minecraft.component.type.CustomModelDataComponent
-import net.minecraft.component.type.DyedColorComponent
-import net.minecraft.item.ItemStack
-import net.minecraft.registry.Registries
-import net.minecraft.resource.ResourceManager
-import net.minecraft.resource.ResourceReloader
-import net.minecraft.text.Text
-import net.minecraft.util.DyeColor
-import net.minecraft.util.Identifier
-import net.minecraft.client.MinecraftClient
+import net.minecraft.core.component.DataComponents
+import net.minecraft.world.item.component.CustomModelData
+import net.minecraft.world.item.component.DyedItemColor
+import net.minecraft.world.item.ItemStack
+import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.server.packs.resources.ResourceManager
+import net.minecraft.server.packs.resources.PreparableReloadListener
+import net.minecraft.network.chat.Component
+import net.minecraft.world.item.DyeColor
+import net.minecraft.resources.Identifier
+import net.minecraft.client.Minecraft
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executor
 
 class ResourceListener : IdentifiableResourceReloadListener {
     override fun getFabricId(): Identifier {
-        return Identifier.of("custommodeldataviewer", "resourcelistener")
+        return Identifier.fromNamespaceAndPath("custommodeldataviewer", "resourcelistener")
     }
 
     //? if >=1.21.9 {
     override fun reload(
-        store: ResourceReloader.Store,
+        store: PreparableReloadListener.SharedState,
         prepareExecutor: Executor,
-        synchronizer: ResourceReloader.Synchronizer,
+        synchronizer: PreparableReloadListener.PreparationBarrier,
         applyExecutor: Executor
     ): CompletableFuture<Void> {
         val prepareFuture = CompletableFuture.supplyAsync(
@@ -39,11 +39,11 @@ class ResourceListener : IdentifiableResourceReloadListener {
         )
 
         return prepareFuture.thenCompose { _ ->
-            synchronizer.whenPrepared(null)
+            synchronizer.wait(Unit)
         }.thenAcceptAsync(
             {
-                val items = getAllItemsWithModelData(store.resourceManager)
-                val client = MinecraftClient.getInstance()
+                val items = getAllItemsWithModelData(store.resourceManager())
+                val client = Minecraft.getInstance()
                 client.execute {
                     Custommodeldataviewer.customModelItems.clear()
                     Custommodeldataviewer.customModelItems.addAll(items)
@@ -89,9 +89,9 @@ class ResourceListener : IdentifiableResourceReloadListener {
     private fun getAllItemsWithModelData(manager: ResourceManager): List<ItemStack> {
         val itemsWithCustomModels = mutableSetOf<ItemStack>()
 
-        manager.findResources("items") { true }.forEach { (identifier, resource) ->
+        manager.listResources("items") { true }.forEach { (identifier, resource) ->
             try {
-                resource.inputStream.reader().use { reader ->
+                resource.open().reader().use { reader ->
                     val json = JsonParser.parseReader(reader).asJsonObject
                     if (!json.has("model")) return@use
 
@@ -100,7 +100,7 @@ class ResourceListener : IdentifiableResourceReloadListener {
                     if (!isCustomModelDataProperty(propertyValue)) return@use
 
                     val itemId = identifier.path.split("/").last().substringBefore('.')
-                    val item = Registries.ITEM.get(Identifier.ofVanilla(itemId))
+                    val item = BuiltInRegistries.ITEM.getValue(Identifier.withDefaultNamespace(itemId))
 
                     val foundBefore = itemsWithCustomModels.size
                     collectCustomModelItems(
@@ -145,9 +145,9 @@ class ResourceListener : IdentifiableResourceReloadListener {
 
     private fun collectCustomModelItems(
         model: JsonObject,
-        item: net.minecraft.item.Item,
+        item: net.minecraft.world.item.Item,
         identifier: Identifier,
-        resource: net.minecraft.resource.Resource,
+        resource: net.minecraft.server.packs.resources.Resource,
         sink: MutableSet<ItemStack>,
         predicates: List<String>,
         thresholds: List<Float>
@@ -157,16 +157,16 @@ class ResourceListener : IdentifiableResourceReloadListener {
                 if (!model.has("model")) return
                 val modelName = model.getAsJsonPrimitive("model").asString
                 val stack = ItemStack(item, 1)
-                if (stack.isEmpty) {
+                if (stack.isEmpty()) {
                     Custommodeldataviewer.logger.warn(
                         "Empty item stack for model $modelName - identifier: $identifier - resource: $resource"
                     )
                     return
                 }
-                stack.set(DataComponentTypes.ITEM_NAME, Text.literal(modelName))
+                stack.set(DataComponents.ITEM_NAME, Component.literal(modelName))
                 val colors = getTints(model, stack, modelName)
-                val customModelData = CustomModelDataComponent(thresholds, listOf(), predicates, colors)
-                stack.set(DataComponentTypes.CUSTOM_MODEL_DATA, customModelData)
+                val customModelData = CustomModelData(thresholds, listOf(), predicates, colors)
+                stack.set(DataComponents.CUSTOM_MODEL_DATA, customModelData)
                 sink.add(stack)
             }
             "select" -> {
@@ -256,7 +256,8 @@ class ResourceListener : IdentifiableResourceReloadListener {
                     if (color != null) {
                         colors.add(color)
                         // Prefer DYED_COLOR for dye tints (per spec behavior)
-                        stack.set(DataComponentTypes.DYED_COLOR, DyedColorComponent(color
+                        stack.set(
+                            DataComponents.DYED_COLOR, DyedItemColor(color
                             //? if <1.21.6 {
                             /*,true
                             *///?}
@@ -276,7 +277,7 @@ class ResourceListener : IdentifiableResourceReloadListener {
 
         // For non-dye tint previews, use BASE_COLOR as a generic cue
         if (!appliedDyedColor && colors.isNotEmpty()) {
-            stack.set(DataComponentTypes.BASE_COLOR, DyeColor.byFireworkColor(colors.first()))
+            stack.set(DataComponents.BASE_COLOR, DyeColor.byFireworkColor(colors.first()))
         }
         return colors
     }

@@ -1,19 +1,17 @@
 package cc.modlabs.custommodeldataviewer.gui
 
-import net.minecraft.component.DataComponentTypes
-import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.inventory.Inventory
-import net.minecraft.screen.slot.Slot
+import net.minecraft.core.component.DataComponents
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.Container
+import net.minecraft.world.inventory.Slot
 
-class LockableSlot(inventory: Inventory?, i: Int, j: Int, k: Int) : Slot(inventory, i, j, k) {
-    override fun canTakeItems(playerEntity: PlayerEntity): Boolean {
-        val itemStack = this.stack
-        return if (super.canTakeItems(playerEntity) && !itemStack.isEmpty) {
-            !itemStack.contains(
-                DataComponentTypes.CREATIVE_SLOT_LOCK
-            )
+class LockableSlot(inventory: Container, i: Int, j: Int, k: Int) : Slot(inventory, i, j, k) {
+    override fun mayPickup(playerEntity: Player): Boolean {
+        val itemStack = this.item
+        return if (super.mayPickup(playerEntity) && !itemStack.isEmpty()) {
+            !itemStack.has(DataComponents.CREATIVE_SLOT_LOCK)
         } else {
-            itemStack.isEmpty
+            itemStack.isEmpty()
         }
     }
 }

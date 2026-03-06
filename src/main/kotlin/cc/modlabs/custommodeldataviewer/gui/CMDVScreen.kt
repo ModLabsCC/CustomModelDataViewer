@@ -1,132 +1,134 @@
 package cc.modlabs.custommodeldataviewer.gui
 
-import net.minecraft.client.MinecraftClient
+import net.minecraft.client.Minecraft
 //? if >=1.21.6 {
-import net.minecraft.client.gl.RenderPipelines
+import net.minecraft.client.renderer.RenderPipelines
 //?}
 //? if >=1.21.9 {
-import net.minecraft.client.gui.Click
-import net.minecraft.client.input.CharInput
-import net.minecraft.client.input.KeyInput
+import net.minecraft.client.input.MouseButtonEvent
+import net.minecraft.client.input.CharacterEvent
+import net.minecraft.client.input.KeyEvent
 //?}
-import net.minecraft.client.gui.DrawContext
-import net.minecraft.client.gui.screen.ingame.CreativeInventoryListener
-import net.minecraft.client.gui.screen.ingame.HandledScreen
-import net.minecraft.client.gui.widget.TextFieldWidget
+import net.minecraft.client.gui.GuiGraphics
+import net.minecraft.client.gui.screens.inventory.CreativeInventoryListener
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
+import net.minecraft.client.gui.components.EditBox
 //? if <1.21.6 {
 /*import net.minecraft.client.render.RenderLayer
 *///?}
-import net.minecraft.client.util.InputUtil
-import net.minecraft.entity.player.PlayerInventory
-import net.minecraft.inventory.SimpleInventory
-import net.minecraft.item.ItemGroup
-import net.minecraft.item.ItemGroups
-import net.minecraft.item.ItemStack
-import net.minecraft.screen.ScreenHandler
-import net.minecraft.screen.ScreenTexts
-import net.minecraft.screen.slot.Slot
-import net.minecraft.screen.slot.SlotActionType
-import net.minecraft.text.Text
-import net.minecraft.util.Identifier
-import net.minecraft.util.math.MathHelper
+import com.mojang.blaze3d.platform.InputConstants
+import net.minecraft.world.entity.player.Inventory
+import net.minecraft.world.SimpleContainer
+import net.minecraft.world.item.CreativeModeTab
+import net.minecraft.world.item.CreativeModeTabs
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.inventory.AbstractContainerMenu
+import net.minecraft.network.chat.CommonComponents
+import net.minecraft.world.inventory.Slot
+import net.minecraft.world.inventory.ClickType
+import net.minecraft.network.chat.Component
+import net.minecraft.resources.Identifier
+import net.minecraft.util.Mth
 
 class CMDVScreen(
     private val allItems: List<ItemStack>
-) : HandledScreen<CMDVScreenHandler>(
-    CMDVScreenHandler(MinecraftClient.getInstance().player!!),
-    MinecraftClient.getInstance().player!!.inventory,
-    ScreenTexts.EMPTY
+) : AbstractContainerScreen<CMDVScreenHandler>(
+    CMDVScreenHandler(requirePlayer()),
+    requirePlayer().inventory,
+    CommonComponents.EMPTY
 ) {
 
-    private val BACKGROUND_TEXTURE = Identifier.of("minecraft", "textures/gui/container/creative_inventory/tab_item_search.png")
-    private val SCROLLER_TEXTURE: Identifier = Identifier.ofVanilla("container/creative_inventory/scroller")
-    private val SCROLLER_DISABLED_TEXTURE: Identifier = Identifier.ofVanilla("container/creative_inventory/scroller_disabled")
+    private val BACKGROUND_TEXTURE = Identifier.fromNamespaceAndPath("minecraft", "textures/gui/container/creative_inventory/tab_item_search.png")
+    private val SCROLLER_TEXTURE: Identifier = Identifier.withDefaultNamespace("container/creative_inventory/scroller")
+    private val SCROLLER_DISABLED_TEXTURE: Identifier = Identifier.withDefaultNamespace("container/creative_inventory/scroller_disabled")
 
     private var scrollPosition = 0f
-    private var searchBox: TextFieldWidget? = null
+    private var searchBox: EditBox? = null
     private var listener: CreativeInventoryListener? = null
     private var deleteItemSlot: Slot? = null
     private var lastClickOutsideBounds = false
     private var scrolling = false
     private var ignoreTypedCharacter = false
     
-    val selectedTabType: ItemGroup.Type = ItemGroup.Type.SEARCH
+    val selectedTabType: CreativeModeTab.Type = CreativeModeTab.Type.SEARCH
 
     init {
-        backgroundHeight = 136
-        backgroundWidth = 195
-        MinecraftClient.getInstance().player!!.currentScreenHandler = handler
-        handler.itemList.addAll(allItems)
+        imageHeight = 136
+        imageWidth = 195
+        requirePlayer().containerMenu = menu
+        menu.itemList.addAll(allItems)
     }
 
     companion object {
-        val INVENTORY: SimpleInventory = SimpleInventory(45)
+        private fun requirePlayer() = requireNotNull(Minecraft.getInstance().player) { "Player must be present to open CMDV screen" }
+        val INVENTORY: SimpleContainer = SimpleContainer(45)
     }
 
     override fun init() {
         super.init()
-        searchBox = TextFieldWidget(MinecraftClient.getInstance().textRenderer, x + 82,  y + 6, 80, 9, Text.translatable("itemGroup.search"))
+        searchBox = EditBox(Minecraft.getInstance().font, leftPos + 82,  topPos + 6, 80, 9, Component.translatable("itemGroup.search"))
         searchBox!!.setMaxLength(50)
-        searchBox!!.setDrawsBackground(false)
+        searchBox!!.setBordered(false)
         searchBox!!.isVisible = true
-        searchBox!!.setFocusUnlocked(false)
+        searchBox!!.setCanLoseFocus(false)
         searchBox!!.isFocused = true
-        searchBox!!.text = ""
+        searchBox!!.setValue("")
         //? if >=1.21.6 {
-        searchBox!!.setEditableColor(-1)
+        searchBox!!.setTextColor(-1)
         //?} else {
         /*searchBox!!.setEditableColor(16777215)
         *///?}
 
-        addSelectableChild(searchBox)
-        client!!.player!!.playerScreenHandler.removeListener(listener)
-        listener = CreativeInventoryListener(client)
-        client!!.player!!.playerScreenHandler.addListener(listener)
+        addWidget(searchBox!!)
+        val localPlayer = minecraft?.player ?: return
+        listener?.let { localPlayer.inventoryMenu.removeSlotListener(it) }
+        listener = CreativeInventoryListener(Minecraft.getInstance())
+        localPlayer.inventoryMenu.addSlotListener(listener!!)
         search()
     }
 
-    override fun resize(client: MinecraftClient, width: Int, height: Int) {
-        val i = handler.getRow(scrollPosition)
-        val string = searchBox!!.text
-        init(client, width, height)
-        searchBox!!.setText(string)
-        if (searchBox!!.text.isNotEmpty()) {
+    override fun resize(width: Int, height: Int) {
+        val i = menu.getRow(scrollPosition)
+        val string = searchBox!!.value
+        init(width, height)
+        searchBox!!.setValue(string)
+        if (searchBox!!.value.isNotEmpty()) {
             search()
         }
 
-        scrollPosition = handler.getScrollPosition(i)
-        handler.scrollItems(scrollPosition)
+        scrollPosition = menu.getScrollPosition(i)
+        menu.scrollItems(scrollPosition)
     }
 
     private fun search() {
-        handler.itemList.clear()
-        val query = searchBox!!.text
+        menu.itemList.clear()
+        val query = searchBox!!.value
         if (query.isEmpty()) {
-            handler.itemList.addAll(allItems)
+            menu.itemList.addAll(allItems)
         } else {
-            handler.itemList.addAll(allItems.filter {
-                it.name.string.contains(query, ignoreCase = true)
+            menu.itemList.addAll(allItems.filter {
+                it.hoverName.string.contains(query, ignoreCase = true)
             })
         }
         scrollPosition = 0.0f
-        handler.scrollItems(0.0f)
+        menu.scrollItems(0.0f)
     }
 
     //? if >=1.21.9 {
-    override fun charTyped(charInput: CharInput): Boolean {
+    override fun charTyped(charInput: CharacterEvent): Boolean {
     //?} else {
     /*override fun charTyped(chr: Char, modifiers: Int): Boolean {
     *///?}
         return if (this.ignoreTypedCharacter) {
             false
         } else {
-            val string = this.searchBox!!.text
+            val string = this.searchBox!!.value
             //? if >=1.21.9 {
             if (this.searchBox!!.charTyped(charInput)) {
             //?} else {
             /*if (this.searchBox!!.charTyped(chr, modifiers)) {
             *///?}
-                if (string != this.searchBox!!.text) {
+                if (string != this.searchBox!!.value) {
                     this.search()
                 }
 
@@ -138,16 +140,16 @@ class CMDVScreen(
     }
 
     //? if >=1.21.9 {
-    override fun keyPressed(keyInput: KeyInput): Boolean {
+    override fun keyPressed(keyInput: KeyEvent): Boolean {
     //?} else {
     /*override fun keyPressed(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
     *///?}
 
         this.ignoreTypedCharacter = false
-        val bl = !this.isCreativeInventorySlot(this.focusedSlot) || this.focusedSlot!!.hasStack()
+        val bl = !this.isCreativeInventorySlot(this.hoveredSlot) || this.hoveredSlot!!.hasItem()
         //? if >=1.21.9 {
-        val bl2 = InputUtil.fromKeyCode(keyInput).toInt().isPresent
-        return if (bl && bl2 && this.handleHotbarKeyPressed(keyInput)) {
+        val bl2 = InputConstants.getKey(keyInput).numericKeyValue.isPresent
+        return if (bl && bl2 && this.checkHotbarKeyPressed(keyInput)) {
         //?} else {
         /*val bl2 = InputUtil.fromKeyCode(keyCode, scanCode).toInt().isPresent
         return if (bl && bl2 && this.handleHotbarKeyPressed(keyCode, scanCode)) {
@@ -155,13 +157,13 @@ class CMDVScreen(
             this.ignoreTypedCharacter = true
             true
         } else {
-            val string = this.searchBox!!.text
+            val string = this.searchBox!!.value
             //? if >=1.21.9 {
             if (this.searchBox!!.keyPressed(keyInput)) {
             //?} else {
             /*if (this.searchBox!!.keyPressed(keyCode, scanCode, modifiers)) {
             *///?}
-                if (string != this.searchBox!!.text) {
+                if (string != this.searchBox!!.value) {
                     this.search()
                 }
 
@@ -183,7 +185,7 @@ class CMDVScreen(
     }
 
     //? if >=1.21.9 {
-    override fun keyReleased(keyInput: KeyInput): Boolean {
+    override fun keyReleased(keyInput: KeyEvent): Boolean {
     //?} else {
     /*override fun keyReleased(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
     *///?}
@@ -204,15 +206,15 @@ class CMDVScreen(
         return if (super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)) {
             true
         } else {
-            scrollPosition = handler.getScrollPosition(scrollPosition, verticalAmount)
-            handler.scrollItems(scrollPosition)
+            scrollPosition = menu.getScrollPosition(scrollPosition, verticalAmount)
+            menu.scrollItems(scrollPosition)
             true
         }
     }
 
     protected fun isClickInScrollbar(mouseX: Double, mouseY: Double): Boolean {
-        val i = x
-        val j = y
+        val i = leftPos
+        val j = topPos
         val k = i + 175
         val l = j + 18
         val m = k + 14
@@ -220,44 +222,44 @@ class CMDVScreen(
         return mouseX >= k.toDouble() && mouseY >= l.toDouble() && mouseX < m.toDouble() && mouseY < n.toDouble()
     }
 
-    private fun getTabX(group: ItemGroup): Int {
-        val i = group.column
+    private fun getTabX(group: CreativeModeTab): Int {
+        val i = group.column()
         var k = 27 * i
-        if (group.isSpecial) {
-            k = backgroundWidth - 27 * (7 - i) + 1
+        if (group.isAlignedRight) {
+            k = imageWidth - 27 * (7 - i) + 1
         }
 
         return k
     }
 
-    private fun getTabY(group: ItemGroup): Int {
+    private fun getTabY(group: CreativeModeTab): Int {
         var i = 0
-        if (group.row == ItemGroup.Row.TOP) {
+        if (group.row() == CreativeModeTab.Row.TOP) {
             i -= 32
         } else {
-            i += backgroundHeight
+            i += imageHeight
         }
 
         return i
     }
 
-    protected fun isClickInTab(group: ItemGroup, mouseX: Double, mouseY: Double): Boolean {
+    protected fun isClickInTab(group: CreativeModeTab, mouseX: Double, mouseY: Double): Boolean {
         val i: Int = getTabX(group)
         val j: Int = getTabY(group)
         return mouseX >= i.toDouble() && mouseX <= (i + 26).toDouble() && mouseY >= j.toDouble() && mouseY <= (j + 32).toDouble()
     }
 
     private fun hasScrollbar(): Boolean {
-        return handler.shouldShowScrollbar()
+        return menu.shouldShowScrollbar()
     }
 
     //? if >=1.21.9 {
-    override fun mouseClicked(click: Click, doubled: Boolean): Boolean {
+    override fun mouseClicked(click: MouseButtonEvent, doubled: Boolean): Boolean {
         if (click.button() == 0) {
-            val d = click.x - x.toDouble()
-            val e = click.y - y.toDouble()
+            val d = click.x - leftPos.toDouble()
+            val e = click.y - topPos.toDouble()
 
-            for (itemGroup in ItemGroups.getGroupsToDisplay()) {
+            for (itemGroup in CreativeModeTabs.tabs()) {
                 if (isClickInTab(itemGroup, d, e)) {
                     return true
                 }
@@ -303,13 +305,13 @@ class CMDVScreen(
     *///?}
 
     //? if >=1.21.9 {
-    override fun mouseDragged(click: Click, offsetX: Double, offsetY: Double): Boolean {
+    override fun mouseDragged(click: MouseButtonEvent, offsetX: Double, offsetY: Double): Boolean {
         if (scrolling) {
-            val i = y + 18
+            val i = topPos + 18
             val j = i + 112
             scrollPosition = (click.y.toFloat() - i.toFloat() - 7.5f) / ((j - i).toFloat() - 15.0f)
-            scrollPosition = MathHelper.clamp(scrollPosition, 0.0f, 1.0f)
-            handler.scrollItems(scrollPosition)
+            scrollPosition = Mth.clamp(scrollPosition, 0.0f, 1.0f)
+            menu.scrollItems(scrollPosition)
             return true
         } else {
             return super.mouseDragged(click, offsetX, offsetY)
@@ -332,7 +334,7 @@ class CMDVScreen(
     *///?}
 
     //? if >=1.21.9 {
-    override fun mouseReleased(click: Click): Boolean {
+    override fun mouseReleased(click: MouseButtonEvent): Boolean {
         if (click.button() == 0) {
             scrolling = false
         }
@@ -350,152 +352,153 @@ class CMDVScreen(
     }
     *///?}
 
-    override fun onMouseClick(slot: Slot?, slotId: Int, button: Int, actionType: SlotActionType?) {
+    override fun slotClicked(slot: Slot, slotId: Int, button: Int, actionType: ClickType) {
+        val player = minecraft?.player ?: return
         var actionType = actionType
 
-        val bl = actionType == SlotActionType.QUICK_MOVE
-        actionType = if (slotId == -999 && actionType == SlotActionType.PICKUP) SlotActionType.THROW else actionType
-        if (actionType != SlotActionType.THROW || client!!.player!!.canDropItems()) {
-            if (slot == null && actionType != SlotActionType.QUICK_CRAFT) {
-                if (!handler.cursorStack!!
-                        .isEmpty && lastClickOutsideBounds
+        val bl = actionType == ClickType.QUICK_MOVE
+        actionType = if (slotId == -999 && actionType == ClickType.PICKUP) ClickType.THROW else actionType
+        if (actionType != ClickType.THROW || player.canDropItems()) {
+            if (slotId == -999 && actionType != ClickType.QUICK_CRAFT) {
+                if (!menu.carried
+                        .isEmpty() && lastClickOutsideBounds
                 ) {
-                    if (!client!!.player!!.canDropItems()) {
+                    if (!player.canDropItems()) {
                         return
                     }
 
                     if (button == 0) {
-                        client!!.player!!.dropItem(handler.cursorStack, true)
-                        client!!.interactionManager!!.dropCreativeStack(handler.cursorStack)
-                        handler.cursorStack = ItemStack.EMPTY
+                        player.drop(menu.carried, true)
+                        minecraft!!.gameMode!!.handleCreativeModeItemDrop(menu.carried)
+                        menu.carried = ItemStack.EMPTY
                     }
 
                     if (button == 1) {
-                        val itemStack = handler.cursorStack!!.split(1)
-                        client!!.player!!.dropItem(itemStack, true)
-                        client!!.interactionManager!!.dropCreativeStack(itemStack)
+                        val itemStack = menu.carried.split(1)
+                        player.drop(itemStack, true)
+                        minecraft!!.gameMode!!.handleCreativeModeItemDrop(itemStack)
                     }
                 }
             } else {
-                if (slot != null && !slot.canTakeItems(client!!.player)) {
+                if (!slot.mayPickup(player)) {
                     return
                 }
 
                 if (slot === deleteItemSlot && bl) {
-                    for (i in client!!.player!!.playerScreenHandler.stacks.indices) {
-                        client!!.player!!.playerScreenHandler.getSlot(i).setStackNoCallbacks(ItemStack.EMPTY)
-                        client!!.interactionManager!!.clickCreativeStack(ItemStack.EMPTY, i)
+                    for (i in player.inventoryMenu.items.indices) {
+                        player.inventoryMenu.getSlot(i).set(ItemStack.EMPTY)
+                        minecraft!!.gameMode!!.handleCreativeModeItemAdd(ItemStack.EMPTY, i)
                     }
-                } else if (selectedTabType == ItemGroup.Type.INVENTORY) {
+                } else if (selectedTabType == CreativeModeTab.Type.INVENTORY) {
                     if (slot === deleteItemSlot) {
-                        handler.cursorStack = ItemStack.EMPTY
-                    } else if (actionType == SlotActionType.THROW && slot != null && slot.hasStack()) {
-                        val itemStack = slot.takeStack(if (button == 0) 1 else slot.stack.maxCount)
-                        val itemStack2 = slot.stack
-                        client!!.player!!.dropItem(itemStack, true)
-                        client!!.interactionManager!!.dropCreativeStack(itemStack)
-                        client!!.interactionManager!!.clickCreativeStack(
+                        menu.carried = ItemStack.EMPTY
+                    } else if (actionType == ClickType.THROW && slot.hasItem()) {
+                        val itemStack = slot.remove(if (button == 0) 1 else slot.item.maxStackSize)
+                        val itemStack2 = slot.item
+                        player.drop(itemStack, true)
+                        minecraft!!.gameMode!!.handleCreativeModeItemDrop(itemStack)
+                        minecraft!!.gameMode!!.handleCreativeModeItemAdd(
                             itemStack2,
-                            (slot as CreativeSlot).slot.id
+                            (slot as CreativeSlot).slot.index
                         )
-                    } else if (actionType == SlotActionType.THROW && slotId == -999 && !handler.cursorStack!!
-                            .isEmpty
+                    } else if (actionType == ClickType.THROW && slotId == -999 && !menu.carried
+                            .isEmpty()
                     ) {
-                        client!!.player!!.dropItem(handler.cursorStack, true)
-                        client!!.interactionManager!!.dropCreativeStack(handler.cursorStack)
-                        handler.cursorStack = ItemStack.EMPTY
+                        player.drop(menu.carried, true)
+                        minecraft!!.gameMode!!.handleCreativeModeItemDrop(menu.carried)
+                        menu.carried = ItemStack.EMPTY
                     } else {
-                        client!!.player!!.playerScreenHandler.onSlotClick(
-                            if (slot == null) slotId else (slot as CreativeSlot).slot.id,
+                        player.inventoryMenu.clicked(
+                            (slot as CreativeSlot).slot.index,
                             button,
                             actionType,
-                            client!!.player
+                            player
                         )
-                        client!!.player!!.playerScreenHandler.sendContentUpdates()
+                        player.inventoryMenu.broadcastChanges()
                     }
-                } else if (actionType != SlotActionType.QUICK_CRAFT && slot!!.inventory === INVENTORY) {
-                    val itemStack = handler.cursorStack
-                    val itemStack2 = slot.stack
-                    if (actionType == SlotActionType.SWAP) {
-                        if (!itemStack2.isEmpty) {
-                            client!!.player!!.getInventory()
-                                .setStack(button, itemStack2.copyWithCount(itemStack2.getMaxCount()))
-                            client!!.player!!.playerScreenHandler.sendContentUpdates()
+                } else if (actionType != ClickType.QUICK_CRAFT && slot.container === INVENTORY) {
+                    val itemStack = menu.carried
+                    val itemStack2 = slot.item
+                    if (actionType == ClickType.SWAP) {
+                        if (!itemStack2.isEmpty()) {
+                            player.inventory
+                                .setItem(button, itemStack2.copyWithCount(itemStack2.maxStackSize))
+                            player.inventoryMenu.broadcastChanges()
                         }
 
                         return
                     }
 
-                    if (actionType == SlotActionType.CLONE) {
-                        if (handler.cursorStack!!.isEmpty && slot.hasStack()) {
-                            val itemStack3 = slot.stack
-                            handler.cursorStack = itemStack3.copyWithCount(itemStack3.maxCount)
+                    if (actionType == ClickType.CLONE) {
+                        if (menu.carried.isEmpty() && slot.hasItem()) {
+                            val itemStack3 = slot.item
+                            menu.carried = itemStack3.copyWithCount(itemStack3.maxStackSize)
                         }
 
                         return
                     }
 
-                    if (actionType == SlotActionType.THROW) {
-                        if (!itemStack2.isEmpty) {
-                            val itemStack3 = itemStack2.copyWithCount(if (button == 0) 1 else itemStack2.maxCount)
-                            client!!.player!!.dropItem(itemStack3, true)
-                            client!!.interactionManager!!.dropCreativeStack(itemStack3)
+                    if (actionType == ClickType.THROW) {
+                        if (!itemStack2.isEmpty()) {
+                            val itemStack3 = itemStack2.copyWithCount(if (button == 0) 1 else itemStack2.maxStackSize)
+                            player.drop(itemStack3, true)
+                            minecraft!!.gameMode!!.handleCreativeModeItemDrop(itemStack3)
                         }
 
                         return
                     }
 
-                    if (!itemStack!!.isEmpty && !itemStack2.isEmpty && ItemStack.areItemsAndComponentsEqual(
+                    if (!itemStack!!.isEmpty() && !itemStack2.isEmpty() && ItemStack.isSameItemSameComponents(
                             itemStack,
                             itemStack2
                         )
                     ) {
                         if (button == 0) {
                             if (bl) {
-                                itemStack.count = itemStack.maxCount
-                            } else if (itemStack.count < itemStack.maxCount) {
-                                itemStack.increment(1)
+                                itemStack.count = itemStack.maxStackSize
+                            } else if (itemStack.count < itemStack.maxStackSize) {
+                                itemStack.grow(1)
                             }
                         } else {
-                            itemStack.decrement(1)
+                            itemStack.shrink(1)
                         }
-                    } else if (!itemStack2.isEmpty && itemStack.isEmpty) {
-                        val j = if (bl) itemStack2.maxCount else itemStack2.count
-                        handler.cursorStack = itemStack2.copyWithCount(j)
+                    } else if (!itemStack2.isEmpty() && itemStack.isEmpty()) {
+                        val j = if (bl) itemStack2.maxStackSize else itemStack2.count
+                        menu.carried = itemStack2.copyWithCount(j)
                     } else if (button == 0) {
-                        handler.cursorStack = ItemStack.EMPTY
-                    } else if (!handler.cursorStack!!.isEmpty) {
-                        handler.cursorStack!!.decrement(1)
+                        menu.carried = ItemStack.EMPTY
+                    } else if (!menu.carried.isEmpty()) {
+                        menu.carried.shrink(1)
                     }
-                } else if (handler != null) {
+                } else {
                     val itemStack =
-                        if (slot == null) ItemStack.EMPTY else handler.getSlot(slot.id)
-                            .stack
-                    handler.onSlotClick(
-                        slot?.id ?: slotId,
+                        menu.getSlot(slot.index)
+                            .item
+                    menu.clicked(
+                        slot.index,
                         button,
                         actionType,
-                        client!!.player
+                        player
                     )
-                    if (ScreenHandler.unpackQuickCraftStage(button) == 2) {
+                    if (AbstractContainerMenu.getQuickcraftHeader(button) == 2) {
                         for (k in 0..8) {
-                            client!!.interactionManager!!.clickCreativeStack(
-                                handler.getSlot(
+                            minecraft!!.gameMode!!.handleCreativeModeItemAdd(
+                                menu.getSlot(
                                     45 + k
-                                ).stack, 36 + k
+                                ).item, 36 + k
                             )
                         }
-                    } else if (slot != null && PlayerInventory.isValidHotbarIndex(slot.index)) {
-                        if (actionType == SlotActionType.THROW && !itemStack.isEmpty && !handler.cursorStack!!.isEmpty
+                    } else if (Inventory.isHotbarSlot(slot.containerSlot)) {
+                        if (actionType == ClickType.THROW && !itemStack.isEmpty() && !menu.carried.isEmpty()
                         ) {
                             val k = if (button == 0) 1 else itemStack.getCount()
                             val itemStack3 = itemStack.copyWithCount(k)
-                            itemStack.decrement(k)
-                            client!!.player!!.dropItem(itemStack3, true)
-                            client!!.interactionManager!!.dropCreativeStack(itemStack3)
+                            itemStack.shrink(k)
+                            player.drop(itemStack3, true)
+                            minecraft!!.gameMode!!.handleCreativeModeItemDrop(itemStack3)
                         }
 
-                        client!!.player!!.playerScreenHandler.sendContentUpdates()
+                        player.inventoryMenu.broadcastChanges()
                     }
                 }
             }
@@ -507,33 +510,33 @@ class CMDVScreen(
     }
 
     //? if >=1.21.9 {
-    override fun isClickOutsideBounds(mouseX: Double, mouseY: Double, left: Int, top: Int): Boolean {
+    override fun hasClickedOutside(mouseX: Double, mouseY: Double, left: Int, top: Int): Boolean {
     //?} else {
     /*override fun isClickOutsideBounds(mouseX: Double, mouseY: Double, left: Int, top: Int, button: Int): Boolean {
     *///?}
 
-        val bl = mouseX < left.toDouble() || mouseY < top.toDouble() || mouseX >= (left + backgroundWidth).toDouble() || mouseY >= (top + backgroundHeight).toDouble()
+        val bl = mouseX < left.toDouble() || mouseY < top.toDouble() || mouseX >= (left + imageWidth).toDouble() || mouseY >= (top + imageHeight).toDouble()
         lastClickOutsideBounds = bl
         return lastClickOutsideBounds
     }
 
-    override fun drawBackground(context: DrawContext, delta: Float, mouseX: Int, mouseY: Int) {
-        context.drawTexture(
+    override fun renderBg(context: GuiGraphics, delta: Float, mouseX: Int, mouseY: Int) {
+        context.blit(
             //? if >=1.21.6 {
             RenderPipelines.GUI_TEXTURED
             //?} else {
             /*{ texture: Identifier? -> RenderLayer.getGuiTextured(texture) }
             *///?}
-            ,BACKGROUND_TEXTURE, x, y, 0.0F, 0.0F, backgroundWidth, backgroundHeight, 256, 256)
+            ,BACKGROUND_TEXTURE, leftPos, topPos, 0.0F, 0.0F, imageWidth, imageHeight, 256, 256)
 
         searchBox!!.render(context, mouseX, mouseY, delta)
 
-        val i = x + 175
-        val j = y + 18
+        val i = leftPos + 175
+        val j = topPos + 18
         val k = j + 112
         val identifier =
             if (hasScrollbar()) SCROLLER_TEXTURE else SCROLLER_DISABLED_TEXTURE
-        context.drawGuiTexture(
+        context.blitSprite(
             //? if >=1.21.6 {
             RenderPipelines.GUI_TEXTURED
             //?} else {
@@ -548,10 +551,10 @@ class CMDVScreen(
         )
     }
 
-    override fun drawForeground(context: DrawContext, mouseX: Int, mouseY: Int) {
-        context.drawText(
-            MinecraftClient.getInstance().textRenderer,
-            Text.literal("Custom Models"),
+    override fun renderLabels(context: GuiGraphics, mouseX: Int, mouseY: Int) {
+        context.drawString(
+            Minecraft.getInstance().font,
+            Component.literal("Custom Models"),
             8,
             6,
             //? if >=1.21.6 {
@@ -564,9 +567,15 @@ class CMDVScreen(
         )
     }
 
-    override fun render(context: DrawContext, mouseX: Int, mouseY: Int, delta: Float) {
+    override fun render(context: GuiGraphics, mouseX: Int, mouseY: Int, delta: Float) {
         super.render(context, mouseX, mouseY, delta)
 
-        drawMouseoverTooltip(context, mouseX, mouseY)
+        renderTooltip(context, mouseX, mouseY)
     }
 }
+
+
+
+
+
+
