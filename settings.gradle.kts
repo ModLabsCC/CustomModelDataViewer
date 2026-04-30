@@ -1,6 +1,6 @@
 pluginManagement {
     repositories {
-        maven("https://nexus.modlabs.cc/repository/maven-mirrors/")
+        maven("https://repo-api.modlabs.cc/repo/maven/maven-mirror/")
     }
 }
 

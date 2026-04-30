@@ -5,8 +5,6 @@ import cc.modlabs.custommodeldataviewer.gui.IconButtonWidget
 import cc.modlabs.custommodeldataviewer.mixin.AbstractContainerScreenAccessor
 import cc.modlabs.custommodeldataviewer.mixin.ScreenInvoker
 import net.fabricmc.api.ClientModInitializer
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper
 import net.minecraft.client.Minecraft

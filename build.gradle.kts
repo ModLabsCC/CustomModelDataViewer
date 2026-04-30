@@ -1,9 +1,10 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.jvm.JvmTargetValidationMode
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm") version "2.2.21"
-    id("fabric-loom") version "1.14.0-alpha.18"
+    id("net.fabricmc.fabric-loom") version "1.15.5"
     id("maven-publish")
     id("com.modrinth.minotaur") version "2.+"
 }
@@ -16,14 +17,14 @@ base {
     archivesName.set(project.property("archives_base_name") as String)
 }
 
-val targetJavaVersion = 21
+val targetJavaVersion = 25
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
     // Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
     // if it is present.
     // If you remove this line, sources will not be generated.
     withSourcesJar()
-    val java = JavaVersion.VERSION_21
+    val java = JavaVersion.VERSION_25
     targetCompatibility = java
     sourceCompatibility = java
 }
@@ -40,14 +41,13 @@ repositories {
 dependencies {
     // To change the versions see the gradle.properties file
     minecraft("com.mojang:minecraft:${project.property("minecraft_version")}")
-    mappings(loom.officialMojangMappings())
-    modImplementation("net.fabricmc:fabric-loader:${project.property("loader_version")}")
-    modImplementation("net.fabricmc:fabric-language-kotlin:${project.property("kotlin_loader_version")}")
+    implementation("net.fabricmc:fabric-loader:${project.property("loader_version")}")
+    implementation("net.fabricmc:fabric-language-kotlin:${project.property("kotlin_loader_version")}")
 
-    modImplementation("net.fabricmc.fabric-api:fabric-api:${project.property("fabric_version")}")
+    implementation("net.fabricmc.fabric-api:fabric-api:${project.property("fabric_version")}")
 
-    modLocalRuntime("com.terraformersmc:modmenu:${project.property("modmenu_version")}")
-    modLocalRuntime("maven.modrinth:cloth-config:${project.property("cloth_config_version")}")
+    runtimeOnly("com.terraformersmc:modmenu:${project.property("modmenu_version")}")
+    runtimeOnly("maven.modrinth:cloth-config:${project.property("cloth_config_version")}")
 }
 
 tasks.processResources {
@@ -59,9 +59,9 @@ tasks.processResources {
     filesMatching("fabric.mod.json") {
         expand(
             "version" to project.version,
-            "minecraft_version" to project.property("minecraft_version"),
-            "loader_version" to project.property("loader_version"),
-            "kotlin_loader_version" to project.property("kotlin_loader_version")
+            "minecraft_version" to (project.property("minecraft_version") as String),
+            "loader_version" to (project.property("loader_version") as String),
+            "kotlin_loader_version" to (project.property("kotlin_loader_version") as String)
         )
     }
 }
@@ -76,7 +76,10 @@ tasks.withType<JavaCompile>().configureEach {
 }
 
 tasks.withType<KotlinCompile>().configureEach {
-    compilerOptions.jvmTarget.set(JvmTarget.fromTarget(targetJavaVersion.toString()))
+    // Kotlin currently caps JVM bytecode target below Java 25.
+    // Keep running/building on Java 25, but emit Kotlin bytecode for JVM 24.
+    compilerOptions.jvmTarget.set(JvmTarget.JVM_24)
+    jvmTargetValidationMode.set(JvmTargetValidationMode.WARNING)
     compilerOptions.freeCompilerArgs.add("-Xno-param-assertions")
 }
 
@@ -110,7 +113,7 @@ modrinth {
     projectId.set("eoafe5FT")
     versionNumber.set(version as String)
     versionType.set("release")
-    uploadFile.set(tasks.remapJar)
+    uploadFile.set(tasks.jar)
     gameVersions.add(project.property("minecraft_version") as String)
     loaders.add("fabric")
     dependencies {

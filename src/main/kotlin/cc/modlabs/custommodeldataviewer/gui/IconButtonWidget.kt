@@ -1,6 +1,6 @@
 package cc.modlabs.custommodeldataviewer.gui
 
-import net.minecraft.client.gui.GuiGraphics
+import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.components.Button
 import net.minecraft.world.item.ItemStack
 import net.minecraft.network.chat.Component as MCText
@@ -12,14 +12,14 @@ class IconButtonWidget(
     onPress: (Button) -> Unit
 ) : Button(x, y, width, height, message, onPress, DEFAULT_NARRATION) {
 
-    override fun renderContents(
-        context: GuiGraphics,
+    override fun extractContents(
+        context: GuiGraphicsExtractor,
         mouseX: Int,
         mouseY: Int,
         delta: Float
     ) {
-        renderDefaultSprite(context)
-        context.renderItem(
+        extractDefaultSprite(context)
+        context.item(
             iconStack,
             this.x + (this.width - 16) / 2,
             this.y + (this.height - 16) / 2

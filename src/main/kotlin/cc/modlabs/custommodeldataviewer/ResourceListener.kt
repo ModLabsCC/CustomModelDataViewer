@@ -96,8 +96,6 @@ class ResourceListener : IdentifiableResourceReloadListener {
                     if (!json.has("model")) return@use
 
                     val rootModel = json.getAsJsonObject("model")
-                    val propertyValue = rootModel.get("property")?.asString
-                    if (!isCustomModelDataProperty(propertyValue)) return@use
 
                     val itemId = identifier.path.split("/").last().substringBefore('.')
                     val item = BuiltInRegistries.ITEM.getValue(Identifier.withDefaultNamespace(itemId))
@@ -110,7 +108,8 @@ class ResourceListener : IdentifiableResourceReloadListener {
                         resource,
                         itemsWithCustomModels,
                         emptyList(),
-                        emptyList()
+                        emptyList(),
+                        false
                     )
                     val found = itemsWithCustomModels.size - foundBefore
                     if (found > 0) {
@@ -150,10 +149,16 @@ class ResourceListener : IdentifiableResourceReloadListener {
         resource: net.minecraft.server.packs.resources.Resource,
         sink: MutableSet<ItemStack>,
         predicates: List<String>,
-        thresholds: List<Float>
+        thresholds: List<Float>,
+        inCustomModelDataBranch: Boolean
     ) {
+        val nodeProperty = model.get("property")?.asString
+        val nodeUsesCustomModelData = isCustomModelDataProperty(nodeProperty)
+        val nextInCustomModelDataBranch = inCustomModelDataBranch || nodeUsesCustomModelData
+
         when (getTypeName(model)) {
             "model" -> {
+                if (!nextInCustomModelDataBranch) return
                 if (!model.has("model")) return
                 val modelName = model.getAsJsonPrimitive("model").asString
                 val stack = ItemStack(item, 1)
@@ -182,7 +187,8 @@ class ResourceListener : IdentifiableResourceReloadListener {
                         resource,
                         sink,
                         predicates + predicate,
-                        thresholds
+                        thresholds,
+                        nextInCustomModelDataBranch
                     )
                 }
             }
@@ -190,7 +196,7 @@ class ResourceListener : IdentifiableResourceReloadListener {
                 val entries = model.getAsJsonArray("entries") ?: return
                 for (entry in entries) {
                     val entryObj = asObject(entry) ?: continue
-                    val thresholdValue = entryObj.get("threshold")?.asFloat ?: continue
+                    val thresholdValue = entryObj.get("threshold")?.asFloat
                     val nested = asObject(entryObj.get("model")) ?: continue
                     collectCustomModelItems(
                         nested,
@@ -199,7 +205,8 @@ class ResourceListener : IdentifiableResourceReloadListener {
                         resource,
                         sink,
                         predicates,
-                        thresholds + thresholdValue
+                        if (nodeUsesCustomModelData && thresholdValue != null) thresholds + thresholdValue else thresholds,
+                        nextInCustomModelDataBranch
                     )
                 }
             }
@@ -214,16 +221,17 @@ class ResourceListener : IdentifiableResourceReloadListener {
                         resource,
                         sink,
                         predicates,
-                        thresholds
+                        thresholds,
+                        nextInCustomModelDataBranch
                     )
                 }
             }
             "condition" -> {
                 asObject(model.get("on_true"))?.let {
-                    collectCustomModelItems(it, item, identifier, resource, sink, predicates, thresholds)
+                    collectCustomModelItems(it, item, identifier, resource, sink, predicates, thresholds, nextInCustomModelDataBranch)
                 }
                 asObject(model.get("on_false"))?.let {
-                    collectCustomModelItems(it, item, identifier, resource, sink, predicates, thresholds)
+                    collectCustomModelItems(it, item, identifier, resource, sink, predicates, thresholds, nextInCustomModelDataBranch)
                 }
             }
             else -> {
