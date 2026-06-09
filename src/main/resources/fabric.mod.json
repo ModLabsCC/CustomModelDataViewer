@@ -28,8 +28,6 @@
     "fabricloader": ">=${loader_version}",
     "fabric-language-kotlin": ">=${kotlin_loader_version}",
     "fabric-api": "*",
-    "minecraft": "${minecraft_version}",
-    "fabric-lifecycle-events-v1": "*",
-    "fabric-key-binding-api-v1": "*"
+    "minecraft": "${minecraft_version}"
   }
 }
