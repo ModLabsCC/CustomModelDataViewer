@@ -49,7 +49,7 @@ class Custommodeldataviewer : ClientModInitializer {
                     x, y, 20, 20,
                     getCMDVItem(),
                     Component.literal(""),
-                    { Minecraft.getInstance().setScreen(CMDVScreen(customModelItems)) }
+                    { Minecraft.getInstance().gui.setScreen(CMDVScreen(customModelItems)) }
                 )
 
                 // Render a custom icon or item (optional): overwrite the button’s render, or call context.drawItem(...)

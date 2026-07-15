@@ -1,10 +1,9 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.dsl.jvm.JvmTargetValidationMode
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    kotlin("jvm") version "2.2.21"
-    id("net.fabricmc.fabric-loom") version "1.15.5"
+    kotlin("jvm") version "2.4.0"
+    id("net.fabricmc.fabric-loom") version "1.17.14"
     id("maven-publish")
     id("com.modrinth.minotaur") version "2.+"
 }
@@ -46,7 +45,7 @@ dependencies {
 
     implementation("net.fabricmc.fabric-api:fabric-api:${project.property("fabric_version")}")
 
-    runtimeOnly("com.terraformersmc:modmenu:${project.property("modmenu_version")}")
+    runtimeOnly("maven.modrinth:modmenu:${project.property("modmenu_version")}")
     runtimeOnly("maven.modrinth:cloth-config:${project.property("cloth_config_version")}")
 }
 
@@ -76,10 +75,7 @@ tasks.withType<JavaCompile>().configureEach {
 }
 
 tasks.withType<KotlinCompile>().configureEach {
-    // Kotlin currently caps JVM bytecode target below Java 25.
-    // Keep running/building on Java 25, but emit Kotlin bytecode for JVM 24.
-    compilerOptions.jvmTarget.set(JvmTarget.JVM_24)
-    jvmTargetValidationMode.set(JvmTargetValidationMode.WARNING)
+    compilerOptions.jvmTarget.set(JvmTarget.JVM_25)
     compilerOptions.freeCompilerArgs.add("-Xno-param-assertions")
 }
 
