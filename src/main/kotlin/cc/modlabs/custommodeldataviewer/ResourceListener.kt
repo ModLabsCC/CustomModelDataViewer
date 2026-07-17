@@ -14,7 +14,11 @@ import net.minecraft.server.packs.resources.PreparableReloadListener
 import net.minecraft.network.chat.Component
 import net.minecraft.world.item.DyeColor
 import net.minecraft.resources.Identifier
+import net.minecraft.resources.ResourceKey
 import net.minecraft.client.Minecraft
+import net.minecraft.world.item.equipment.EquipmentAssets
+import net.minecraft.world.item.equipment.Equippable
+import java.util.Optional
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executor
 
@@ -169,6 +173,7 @@ class ResourceListener : IdentifiableResourceReloadListener {
                     return
                 }
                 stack.set(DataComponents.ITEM_NAME, Component.literal(modelName))
+                applyEquipmentAsset(stack, modelName)
                 val colors = getTints(model, stack, modelName)
                 val customModelData = CustomModelData(thresholds, listOf(), predicates, colors)
                 stack.set(DataComponents.CUSTOM_MODEL_DATA, customModelData)
@@ -238,6 +243,28 @@ class ResourceListener : IdentifiableResourceReloadListener {
                 // Types like empty, bundle/selected_item, special are ignored for collection purposes
             }
         }
+    }
+
+    private fun applyEquipmentAsset(stack: ItemStack, modelName: String) {
+        val equippable = stack.get(DataComponents.EQUIPPABLE) ?: return
+        val assetId = ResourceKey.create(EquipmentAssets.ROOT_ID, Identifier.parse(modelName))
+
+        stack.set(
+            DataComponents.EQUIPPABLE,
+            Equippable(
+                equippable.slot(),
+                equippable.equipSound(),
+                Optional.of(assetId),
+                equippable.cameraOverlay(),
+                equippable.allowedEntities(),
+                equippable.dispensable(),
+                equippable.swappable(),
+                equippable.damageOnHurt(),
+                equippable.equipOnInteract(),
+                equippable.canBeSheared(),
+                equippable.shearingSound()
+            )
+        )
     }
 
     private fun getTints(jObj: JsonObject, stack: ItemStack, name: String): List<Int> {
