@@ -16,10 +16,13 @@ import net.minecraft.core.Holder
 import net.minecraft.core.component.DataComponents
 import net.minecraft.core.registries.Registries
 import net.minecraft.nbt.CompoundTag
+import net.minecraft.world.entity.EntityType
+import net.minecraft.world.entity.EntityTypes
 import net.minecraft.world.item.component.CustomModelData
 import net.minecraft.world.item.component.CustomData
 import net.minecraft.world.item.component.ItemLore
 import net.minecraft.world.item.component.TooltipDisplay
+import net.minecraft.world.item.component.TypedEntityData
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.Items
@@ -52,9 +55,14 @@ class Custommodeldataviewer : ClientModInitializer {
             return item
         }
 
-        private fun getInvisibleFrame(item: Item, enchantment: Holder<Enchantment>): ItemStack {
+        private fun getInvisibleFrame(
+            item: Item,
+            entityType: EntityType<*>,
+            enchantment: Holder<Enchantment>
+        ): ItemStack {
             val publicBukkitValues = CompoundTag().apply { putByte("imageframe:invisible", 1) }
             val customData = CompoundTag().apply { put("PublicBukkitValues", publicBukkitValues) }
+            val entityData = CompoundTag().apply { putBoolean("Invisible", true) }
 
             return ItemStack(item).apply {
                 set(
@@ -66,6 +74,7 @@ class Custommodeldataviewer : ClientModInitializer {
                 set(DataComponents.TOOLTIP_DISPLAY, TooltipDisplay.DEFAULT.withHidden(DataComponents.ENCHANTMENTS, true))
                 enchant(enchantment, 1)
                 set(DataComponents.CUSTOM_DATA, CustomData.of(customData))
+                set(DataComponents.ENTITY_DATA, TypedEntityData.of(entityType, entityData))
             }
         }
     }
@@ -77,8 +86,8 @@ class Custommodeldataviewer : ClientModInitializer {
             val enchantment = output.context.holders()
                 .lookupOrThrow(Registries.ENCHANTMENT)
                 .getOrThrow(Enchantments.LUCK_OF_THE_SEA)
-            output.accept(getInvisibleFrame(Items.ITEM_FRAME, enchantment))
-            output.accept(getInvisibleFrame(Items.GLOW_ITEM_FRAME, enchantment))
+            output.accept(getInvisibleFrame(Items.ITEM_FRAME, EntityTypes.ITEM_FRAME, enchantment))
+            output.accept(getInvisibleFrame(Items.GLOW_ITEM_FRAME, EntityTypes.GLOW_ITEM_FRAME, enchantment))
         }
 
         ResourceManagerHelper.get(PackType.CLIENT_RESOURCES).registerReloadListener(ResourceListener())
