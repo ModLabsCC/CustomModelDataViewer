@@ -7,6 +7,7 @@ import cc.modlabs.custommodeldataviewer.mixin.ScreenInvoker
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
@@ -90,7 +91,12 @@ class Custommodeldataviewer : ClientModInitializer {
             output.accept(getInvisibleFrame(Items.GLOW_ITEM_FRAME, EntityTypes.GLOW_ITEM_FRAME, enchantment))
         }
 
-        ResourceManagerHelper.get(PackType.CLIENT_RESOURCES).registerReloadListener(ResourceListener())
+        val resourceListener = ResourceListener()
+        ResourceManagerHelper.get(PackType.CLIENT_RESOURCES).registerReloadListener(resourceListener)
+        ClientPlayConnectionEvents.JOIN.register { _, _, client ->
+            resourceListener.refreshItems(client.resourceManager)
+        }
+        ClientPlayConnectionEvents.DISCONNECT.register { _, _ -> customModelItems.clear() }
 
         ScreenEvents.AFTER_INIT.register { _, screen, mouseX, mouseY ->
             if (screen is CreativeModeInventoryScreen) {

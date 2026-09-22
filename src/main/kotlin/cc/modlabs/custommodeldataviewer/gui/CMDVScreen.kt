@@ -29,6 +29,7 @@ import net.minecraft.world.inventory.ContainerInput
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.Identifier
 import net.minecraft.util.Mth
+import net.minecraft.util.Prediction
 
 class CMDVScreen(
     private val allItems: List<ItemStack>
@@ -170,7 +171,7 @@ class CMDVScreen(
                 true
             } else {
                 //? if >=1.21.9 {
-                (this.searchBox!!.isFocused && this.searchBox!!.isVisible && keyInput.key != 256) || super.keyPressed(
+                (this.searchBox!!.isFocused && this.searchBox!!.isVisible && keyInput.key != InputConstants.KEY_ESCAPE) || super.keyPressed(
                     keyInput
                 )
                 //?} else {
@@ -255,7 +256,7 @@ class CMDVScreen(
 
     //? if >=1.21.9 {
     override fun mouseClicked(click: MouseButtonEvent, doubled: Boolean): Boolean {
-        if (click.button() == 0) {
+        if (click.button() == InputConstants.MOUSE_BUTTON_LEFT) {
             val d = click.x - leftPos.toDouble()
             val e = click.y - topPos.toDouble()
 
@@ -335,7 +336,7 @@ class CMDVScreen(
 
     //? if >=1.21.9 {
     override fun mouseReleased(click: MouseButtonEvent): Boolean {
-        if (click.button() == 0) {
+        if (click.button() == InputConstants.MOUSE_BUTTON_LEFT) {
             scrolling = false
         }
 
@@ -368,12 +369,12 @@ class CMDVScreen(
         if (slotId == -999 && selectedTabType != CreativeModeTab.Type.INVENTORY && clickType != ContainerInput.QUICK_CRAFT) {
             if (!menu.carried.isEmpty && lastClickOutsideBounds) {
                 if (button == 0) {
-                    player.drop(menu.carried, true)
+                    player.drop(menu.carried, true, Prediction.PREDICTED)
                     gameMode.handleCreativeModeItemDrop(menu.carried)
                     menu.carried = ItemStack.EMPTY
                 } else if (button == 1) {
                     val dropped = menu.carried.split(1)
-                    player.drop(dropped, true)
+                    player.drop(dropped, true, Prediction.PREDICTED)
                     gameMode.handleCreativeModeItemDrop(dropped)
                 }
             }
@@ -410,11 +411,11 @@ class CMDVScreen(
             } else if (clickType == ContainerInput.THROW && slot.hasItem()) {
                 val removed = slot.remove(if (button == 0) 1 else slot.item.maxStackSize)
                 val remaining = slot.item
-                player.drop(removed, true)
+                player.drop(removed, true, Prediction.PREDICTED)
                 gameMode.handleCreativeModeItemDrop(removed)
                 gameMode.handleCreativeModeItemAdd(remaining, (slot as CreativeSlot).slot.index)
             } else if (clickType == ContainerInput.THROW && !menu.carried.isEmpty) {
-                player.drop(menu.carried, true)
+                player.drop(menu.carried, true, Prediction.PREDICTED)
                 gameMode.handleCreativeModeItemDrop(menu.carried)
                 menu.carried = ItemStack.EMPTY
             } else {
@@ -451,7 +452,7 @@ class CMDVScreen(
             if (clickType == ContainerInput.THROW) {
                 if (!slotStack.isEmpty) {
                     val dropped = slotStack.copyWithCount(if (button == 0) 1 else slotStack.maxStackSize)
-                    player.drop(dropped, true)
+                    player.drop(dropped, true, Prediction.PREDICTED)
                     gameMode.handleCreativeModeItemDrop(dropped)
                 }
                 return
@@ -491,7 +492,7 @@ class CMDVScreen(
                 gameMode.handleCreativeModeItemAdd(previousStack, 36 + button)
             } else if (clickType == ContainerInput.THROW && !previousStack.isEmpty) {
                 val dropped = previousStack.copyWithCount(if (button == 0) 1 else previousStack.maxStackSize)
-                player.drop(dropped, true)
+                player.drop(dropped, true, Prediction.PREDICTED)
                 gameMode.handleCreativeModeItemDrop(dropped)
             }
             player.inventoryMenu.broadcastChanges()

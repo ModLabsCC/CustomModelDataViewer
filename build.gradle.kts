@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm") version "2.4.0"
-    id("net.fabricmc.fabric-loom") version "1.17.14"
+    id("net.fabricmc.fabric-loom") version "1.17.21"
     id("maven-publish")
     id("com.modrinth.minotaur") version "2.+"
 }
@@ -34,7 +34,9 @@ repositories {
     // Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
     // See https://docs.gradle.org/current/userguide/declaring_repositories.html
     // for more information about repositories.
-    maven("https://nexus.modlabs.cc/repository/maven-mirrors/")
+    maven("https://api.modrinth.com/maven") {
+        content { includeGroup("maven.modrinth") }
+    }
 }
 
 dependencies {
@@ -47,6 +49,14 @@ dependencies {
 
     runtimeOnly("maven.modrinth:modmenu:${project.property("modmenu_version")}")
     runtimeOnly("maven.modrinth:cloth-config:${project.property("cloth_config_version")}")
+}
+
+fabricApi {
+    configureTests {
+        createSourceSet = true
+        modId = "custommodeldataviewer_test"
+        enableGameTests = false
+    }
 }
 
 tasks.processResources {

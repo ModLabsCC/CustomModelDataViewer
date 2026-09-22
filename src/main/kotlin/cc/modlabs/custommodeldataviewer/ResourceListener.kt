@@ -46,13 +46,10 @@ class ResourceListener : IdentifiableResourceReloadListener {
             synchronizer.wait(Unit)
         }.thenAcceptAsync(
             {
-                val items = getAllItemsWithModelData(store.resourceManager())
                 val client = Minecraft.getInstance()
                 client.execute {
-                    Custommodeldataviewer.customModelItems.clear()
-                    Custommodeldataviewer.customModelItems.addAll(items)
+                    refreshItems(store.resourceManager())
                 }
-                Custommodeldataviewer.logger.info("Resources reloaded - found ${items.size} custom modeled items")
             },
             applyExecutor
         )
@@ -89,6 +86,15 @@ class ResourceListener : IdentifiableResourceReloadListener {
         )
     }
     *///?}
+
+    fun refreshItems(manager: ResourceManager) {
+        Custommodeldataviewer.customModelItems.clear()
+        // Item components are bound during connection setup in 26.3, after the initial resource reload.
+        if (Minecraft.getInstance().level == null) return
+        val items = getAllItemsWithModelData(manager)
+        Custommodeldataviewer.customModelItems.addAll(items)
+        Custommodeldataviewer.logger.info("Resources reloaded - found ${items.size} custom modeled items")
+    }
 
     private fun getAllItemsWithModelData(manager: ResourceManager): List<ItemStack> {
         val itemsWithCustomModels = mutableSetOf<ItemStack>()
@@ -183,18 +189,25 @@ class ResourceListener : IdentifiableResourceReloadListener {
                 val cases = model.getAsJsonArray("cases") ?: return
                 for (caseElem in cases) {
                     val caseObj = asObject(caseElem) ?: continue
-                    val predicate = caseObj.get("when")?.asString ?: continue
+                    val values = caseObj.get("when") ?: continue
                     val nested = asObject(caseObj.get("model")) ?: continue
-                    collectCustomModelItems(
-                        nested,
-                        item,
-                        identifier,
-                        resource,
-                        sink,
-                        predicates + predicate,
-                        thresholds,
-                        nextInCustomModelDataBranch
-                    )
+                    val casePredicates = if (nodeUsesCustomModelData) {
+                        (if (values.isJsonArray) values.asJsonArray else listOf(values)).mapNotNull {
+                            if (it.isJsonPrimitive && it.asJsonPrimitive.isString) predicates + it.asString else null
+                        }
+                    } else listOf(predicates)
+                    for (selectedPredicates in casePredicates) {
+                        collectCustomModelItems(
+                            nested,
+                            item,
+                            identifier,
+                            resource,
+                            sink,
+                            selectedPredicates,
+                            thresholds,
+                            nextInCustomModelDataBranch
+                        )
+                    }
                 }
             }
             "range_dispatch" -> {

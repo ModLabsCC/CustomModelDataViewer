@@ -1,0 +1,26 @@
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "minecraft:display_context",
+    "cases": [{
+      "when": ["gui", "ground"],
+      "model": {
+        "type": "minecraft:select",
+        "property": "minecraft:custom_model_data",
+        "cases": [{
+          "when": [
+            "fixture_0", "fixture_1", "fixture_2", "fixture_3", "fixture_4", "fixture_5", "fixture_6", "fixture_7", "fixture_8",
+            "fixture_9", "fixture_10", "fixture_11", "fixture_12", "fixture_13", "fixture_14", "fixture_15", "fixture_16", "fixture_17",
+            "fixture_18", "fixture_19", "fixture_20", "fixture_21", "fixture_22", "fixture_23", "fixture_24", "fixture_25", "fixture_26",
+            "fixture_27", "fixture_28", "fixture_29", "fixture_30", "fixture_31", "fixture_32", "fixture_33", "fixture_34", "fixture_35",
+            "fixture_36", "fixture_37", "fixture_38", "fixture_39", "fixture_40", "fixture_41", "fixture_42", "fixture_43", "fixture_44",
+            "fixture_45", "fixture_46", "fixture_47", "fixture_48", "fixture_49", "fixture_50", "fixture_51", "fixture_52", "fixture_53"
+          ],
+          "model": {"type": "minecraft:model", "model": "minecraft:item/diamond"}
+        }],
+        "fallback": {"type": "minecraft:model", "model": "minecraft:item/diamond"}
+      }
+    }],
+    "fallback": {"type": "minecraft:model", "model": "minecraft:item/diamond"}
+  }
+}
