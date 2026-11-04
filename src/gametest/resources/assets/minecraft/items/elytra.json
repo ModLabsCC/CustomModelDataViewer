@@ -1,0 +1,11 @@
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "minecraft:custom_model_data",
+    "cases": [{
+      "when": "salvation",
+      "model": {"type": "minecraft:model", "model": "xtr:elytra/salvation"}
+    }],
+    "fallback": {"type": "minecraft:model", "model": "minecraft:item/elytra"}
+  }
+}
