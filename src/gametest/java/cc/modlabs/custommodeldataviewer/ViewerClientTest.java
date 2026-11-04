@@ -93,6 +93,7 @@ public final class ViewerClientTest implements FabricClientGameTest {
             context.getInput().pressKey(InputConstants.KEY_ESCAPE);
             context.waitForScreen(null);
 
+            context.runOnClient(client -> Custommodeldataviewer.Companion.getCustomModelItems().clear());
             var reload = context.computeOnClient(client -> client.reloadResourcePacks());
             context.waitFor(client -> reload.isDone(), 1200);
             reload.join();
@@ -104,6 +105,7 @@ public final class ViewerClientTest implements FabricClientGameTest {
 
     private static void checkModels() {
         var items = Custommodeldataviewer.Companion.getCustomModelItems();
+        checkReportedNumericModels(items);
         require(items.stream().anyMatch(item -> item.is(Items.DEBUG_STICK)
                 && strings(item).equals(List.of("cmdv"))), "Built-in CMDV model must be available after JOIN/reload");
         var diamonds = items.stream().filter(item -> item.is(Items.DIAMOND)).toList();
@@ -127,6 +129,26 @@ public final class ViewerClientTest implements FabricClientGameTest {
                 "Custom model path must be used as the item name");
         require(expected.equals(elytra.get(DataComponents.EQUIPPABLE)),
                 "Custom elytra must use the model path as its asset ID and preserve other equipment settings");
+    }
+
+    private static void checkReportedNumericModels(List<ItemStack> items) {
+        // Reproduce the paper.json shown in issue #2, including unqualified type/property names.
+        // Removing numeric range dispatch support must make this check fail on JOIN and reload.
+        var paper = items.stream().filter(item -> item.is(Items.PAPER)).toList();
+        require(paper.size() == 3,
+                "Issue #2: all three numeric models must be found without adding the fallback, got " + paper.size());
+        var thresholds = List.of(1002.0F, 1004.0F, 23000.0F);
+        var names = List.of("custom/decorations/book_1", "custom/decorations/book_stack_1", "item/paper");
+        for (int i = 0; i < paper.size(); i++) {
+            var stack = paper.get(i);
+            var data = stack.get(DataComponents.CUSTOM_MODEL_DATA);
+            require(data != null && data.floats().equals(List.of(thresholds.get(i))),
+                    "Issue #2: numeric threshold must become the first CMD float, variant " + i);
+            require(data.strings().isEmpty() && data.flags().isEmpty() && data.colors().isEmpty(),
+                    "Issue #2: numeric selectors must not populate other CMD components, variant " + i);
+            require(names.get(i).equals(stack.get(DataComponents.ITEM_NAME).getString()),
+                    "Issue #2: each preview must retain its model path, variant " + i);
+        }
     }
 
     private static List<String> strings(ItemStack item) {
