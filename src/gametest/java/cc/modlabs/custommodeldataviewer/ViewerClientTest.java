@@ -9,11 +9,16 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.equipment.EquipmentAssets;
+import net.minecraft.world.item.equipment.Equippable;
 
 import java.util.List;
+import java.util.Optional;
 
 public final class ViewerClientTest implements FabricClientGameTest {
     @Override
@@ -106,7 +111,22 @@ public final class ViewerClientTest implements FabricClientGameTest {
         for (int i = 0; i < 54; i++) {
             require(strings(diamonds.get(i)).equals(List.of("fixture_" + i)),
                     "Only custom_model_data selectors may add CMD strings; variant " + i);
+            require(diamonds.get(i).get(DataComponents.EQUIPPABLE) == null,
+                    "Non-equippable items must remain non-equippable");
         }
+        var elytra = items.stream().filter(item -> item.is(Items.ELYTRA)
+                && strings(item).equals(List.of("salvation"))).findFirst()
+                .orElseThrow(() -> new AssertionError("Custom elytra preview is missing"));
+        var original = new ItemStack(Items.ELYTRA).get(DataComponents.EQUIPPABLE);
+        require(original != null, "Elytra must have an equippable component");
+        var asset = ResourceKey.create(EquipmentAssets.ROOT_ID, Identifier.parse("xtr:elytra/salvation"));
+        var expected = new Equippable(original.slot(), original.equipSound(), Optional.of(asset),
+                original.cameraOverlay(), original.allowedEntities(), original.dispensable(), original.swappable(),
+                original.damageOnHurt(), original.equipOnInteract(), original.canBeSheared(), original.shearingSound());
+        require("xtr:elytra/salvation".equals(elytra.get(DataComponents.ITEM_NAME).getString()),
+                "Custom model path must be used as the item name");
+        require(expected.equals(elytra.get(DataComponents.EQUIPPABLE)),
+                "Custom elytra must use the model path as its asset ID and preserve other equipment settings");
     }
 
     private static List<String> strings(ItemStack item) {
