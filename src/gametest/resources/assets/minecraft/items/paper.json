@@ -1,0 +1,33 @@
+{
+  "model": {
+    "type": "range_dispatch",
+    "property": "custom_model_data",
+    "entries": [
+      {
+        "threshold": 1002,
+        "model": {
+          "type": "model",
+          "model": "custom/decorations/book_1"
+        }
+      },
+      {
+        "threshold": 1004,
+        "model": {
+          "type": "model",
+          "model": "custom/decorations/book_stack_1"
+        }
+      },
+      {
+        "threshold": 23000,
+        "model": {
+          "type": "model",
+          "model": "item/paper"
+        }
+      }
+    ],
+    "fallback": {
+      "type": "model",
+      "model": "item/paper"
+    }
+  }
+}
